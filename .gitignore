@@ -17,6 +17,7 @@ coverage/
 .vite/
 *.tsbuildinfo
 .eslintcache
+/backend/src/generated/prisma/
 
 # Logs and runtime files
 logs/
@@ -39,8 +40,8 @@ logs/
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/*
-!.vscode/extensions.json
+**/.vscode/*
+!**/.vscode/extensions.json
 *.suo
 *.ntvs*
 *.njsproj
