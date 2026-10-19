@@ -280,7 +280,7 @@ evidence in SUBMISSION.md. Never invent history or retroactively relabel old com
 
 | Milestone | Exit gate and expected deliverables | Current status |
 | --- | --- | --- |
-| M0 — Scaffold | Existing React/NestJS structure; linters/formatters; env examples for both apps; README skeleton naming Problem 2; verified setup. | Partial: scaffold/Prisma exist; README format and remaining setup need verification. |
+| M0 — Scaffold | Existing React/NestJS structure; linters/formatters; env examples for both apps; README skeleton naming Problem 2; verified setup. | Verified 2026-10-19: both builds/linters, configuration tests, and mocked HTTP test pass; commit recorded with M1 evidence. |
 | M1 — Domain model | Entities; schema and reproducible migrations; realistic repeatable seed; R1–R7 test cases written (may initially fail); numbered ambiguity decisions. | Not started |
 | M2 — Business rules | Testable use cases/policies; all core rules pass; atomic rescheduling and real PostgreSQL concurrency evidence; boundary tests. HTTP not required yet. | Not started |
 | M3 — API | Core endpoints; DTO validation; consistent errors; structured request logging; request clock; OpenAPI; passing API tests. | Not started |

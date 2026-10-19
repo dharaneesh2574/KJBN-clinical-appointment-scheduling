@@ -4,6 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
+import { AppConfig } from './../src/common/config/app-config';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -14,6 +15,12 @@ describe('AppController (e2e)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue({})
+      .overrideProvider(AppConfig)
+      .useValue(
+        AppConfig.fromEnvironment({
+          DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
+        }),
+      )
       .compile();
 
     app = moduleFixture.createNestApplication();

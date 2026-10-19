@@ -1,22 +1,17 @@
 import { PrismaService } from './prisma.service';
+import { AppConfig } from '../common/config/app-config';
+
+const config = AppConfig.fromEnvironment({
+  DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
+});
 
 describe('PrismaService', () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it('rejects missing database configuration instead of using driver defaults', () => {
-    jest.replaceProperty(process, 'env', { ...process.env, DATABASE_URL: '' });
-
-    expect(() => new PrismaService()).toThrow('DATABASE_URL is required');
-  });
-
   it('connects on startup and closes the client on shutdown', async () => {
-    jest.replaceProperty(process, 'env', {
-      ...process.env,
-      DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
-    });
-    const service = new PrismaService();
+    const service = new PrismaService(config);
     const connect = jest.spyOn(service, '$connect').mockResolvedValue();
     const disconnect = jest.spyOn(service, '$disconnect').mockResolvedValue();
 
@@ -28,11 +23,7 @@ describe('PrismaService', () => {
   });
 
   it('propagates connection failures during startup', async () => {
-    jest.replaceProperty(process, 'env', {
-      ...process.env,
-      DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
-    });
-    const service = new PrismaService();
+    const service = new PrismaService(config);
     jest.spyOn(service, '$connect').mockRejectedValue(new Error('unavailable'));
 
     await expect(service.onModuleInit()).rejects.toThrow('unavailable');

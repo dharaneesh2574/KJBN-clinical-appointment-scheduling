@@ -1,11 +1,42 @@
 # AI prompt log
 
-Record AI requests in chronological order, with the assistant/tool and a one-line
-note on how the response was used. This log starts with the request available in
-the current conversation. Earlier scaffold-related prompts are not available here;
-their history still needs to be recovered and disclosed before submission.
+Requests below are ordered from the available conversation evidence. Items 1–3
+were recovered from the scaffold conversation; their dates use its environment
+context. No unavailable prompts or tool results are invented.
 
-## 1. Project guidance from assignment PDFs
+## 1. Repository scaffold hygiene
+
+- Date: 2026-10-18 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop.
+- Prompt (verbatim):
+
+  > in this directory I have frontend and backend apps i need you to scaffold commit it by configuring the gitignore for relevant practices like removing package files and everything and perform a commit and push to repository
+
+- Outcome: Added root ignore rules and backend scaffold; retained manifests and
+  lockfiles for reproducible installation; committed and pushed `9d45677`.
+
+## 2. Commit confirmation
+
+- Date: 2026-10-18 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop.
+- Prompt (verbatim):
+
+  > did you commit ?
+
+- Outcome: Confirmed `9d45677` and its push to main; no file changes.
+
+## 3. Single repository and Prisma
+
+- Date: 2026-10-18 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop.
+- Prompt (verbatim):
+
+  > no you have a single repository at rrot of thes chat there os no backend specific repo remo ve them add git ignore to main project folder and also add configure prisma orm in backend
+
+- Outcome: Confirmed one root repository, removed redundant frontend ignore file,
+  and configured PostgreSQL/Prisma 7 with NestJS lifecycle in `c5cc50f`.
+
+## 4. Project guidance from assignment PDFs
 
 - Date: 2026-10-18 (Asia/Kolkata).
 - Assistant/tool: OpenAI Codex desktop.
@@ -24,3 +55,18 @@ their history still needs to be recovered and disclosed before submission.
 - Outcome: Used to create `AGENTS.md` with source requirements, selected stack,
   backend/SOLID rules, milestone gates, and deliverable formats; no application
   business logic was implemented in this step.
+
+## 5. M1, Docker, and initialized configuration
+
+- Date: 2026-10-19 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop; domain-modeling skill; official Prisma,
+  PostgreSQL, and Docker documentation consulted.
+- Prompt (verbatim):
+
+  > we have to procede with M1 to modal the domain with all the entities mentioned
+  > also setup docker frontend and backend as a container and write a docker compose at root level to run those images under dharaneesh2574/*
+  > and also setup the config class in backend to read from env which should also be initialized
+
+- Use note: Complete/verify M0 first, model M1 entities/migrations/seed and explicit
+  decisions, then add the explicitly requested container subset of M5 early.
+  Verification and final milestone hashes are recorded in README/SUBMISSION.
