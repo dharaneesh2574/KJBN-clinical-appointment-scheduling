@@ -2,8 +2,9 @@
 
 Problem 2 scaffold: React/Vite frontend and NestJS backend connected through
 Prisma's PostgreSQL adapter. Environment configuration is validated and injected.
-Domain modeling and local container orchestration are in progress; core booking
-workflows are not yet implemented.
+M1 models all required entities with migration constraints, a fictional seed,
+and real-PostgreSQL tests. Local container verification is in progress; core
+booking workflows are not yet implemented.
 
 ## B. Three design decisions
 
@@ -17,9 +18,11 @@ workflows are not yet implemented.
 
 ## C. The hardest part
 
-Domain and concurrency work is pending. Earlier Prisma setup (`c5cc50f`) required
-CommonJS-compatible generated imports for NestJS and Jest. No concurrency result
-is implied by the existing mocked tests.
+The first real-DB run exposed Prisma dynamic imports inside Jest; the integration
+runner now uses VM-module support. Fresh-database tests also checked SQL null
+semantics in the status-event constraint. Ten real-DB tests pass, including
+concurrent overlap inserts. Full cap/availability transaction safety remains M2.
+Earlier Prisma setup is `c5cc50f`; M0 configuration is `c9a3346`.
 
 ## D. How I handle failure
 
@@ -31,8 +34,8 @@ and unexpected exceptions; this envelope and structured logging are pending M3.
 
 | Milestone | Date completed | Actual commit hash |
 | --- | --- | --- |
-| M0 | Verification in progress | Pending |
-| M1 | In progress | Pending |
+| M0 | 2026-10-19 | `c9a3346` |
+| M1 | Verified 2026-10-19 | Hash recorded in next milestone commit |
 | M2 | Not started | — |
 | M3 | Not started | — |
 | M4 | Not started | — |
@@ -57,10 +60,10 @@ Provisional scores describe current partial implementation, not the final produc
 | Code clarity and structure | 14 | 2 | Boundaries established; feature work pending |
 | Error and exception handling | 10 | 1 | Configuration validated; HTTP handling pending |
 | Logging and observability | 8 | 1 | Structured logging pending |
-| Data modelling and persistence | 9 | 1 | Prisma configured; M1 in progress |
+| Data modelling and persistence | 9 | 3 | Entities, constraints, migrations, repeatable seed tested |
 | API design | 8 | 1 | Core endpoints pending |
 | UI usability | 6 | 1 | Starter UI |
-| Testing | 7 | 1 | Scaffold/config checks only |
+| Testing | 7 | 2 | 25 unit and 10 real-DB tests; M2 acceptance TODOs remain |
 | Deployment and operability | 5 | 1 | Container verification in progress |
 | Git hygiene | 4 | 2 | Incremental history; milestone tracking started |
 | Documentation and write-up | 4 | 2 | Required structure present; final evidence pending |

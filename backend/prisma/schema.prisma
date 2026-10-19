@@ -9,4 +9,117 @@ datasource db {
   provider = "postgresql"
 }
 
-// Add application models here, then run npm run prisma:migrate -- --name <name>.
+enum AppointmentStatus {
+  BOOKED
+  COMPLETED
+  CANCELLED
+  LATE_CANCELLED
+  NO_SHOW
+}
+
+enum PatientFlag {
+  MOBILITY_ASSISTANCE
+  INTERPRETER_REQUIRED
+}
+
+model Doctor {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  name               String                 @db.VarChar(120)
+  speciality         String                 @db.VarChar(120)
+  slotMinutes        Int                    @map("slot_minutes")
+  dailyCap           Int                    @map("daily_cap")
+  active             Boolean                @default(true)
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  weeklyAvailability WeeklyAvailability[]
+  dateOverrides      AvailabilityOverride[]
+  appointments       Appointment[]
+
+  @@map("doctors")
+}
+
+model WeeklyAvailability {
+  id          String @id @default(uuid()) @db.Uuid
+  doctorId    String @map("doctor_id") @db.Uuid
+  weekday     Int
+  startMinute Int    @map("start_minute")
+  endMinute   Int    @map("end_minute")
+  doctor      Doctor @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+
+  @@unique([doctorId, weekday, startMinute])
+  @@map("weekly_availability")
+}
+
+model AvailabilityOverride {
+  id       String               @id @default(uuid()) @db.Uuid
+  doctorId String               @map("doctor_id") @db.Uuid
+  date     DateTime             @db.Date
+  reason   String               @db.VarChar(500)
+  doctor   Doctor               @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  windows  AvailabilityWindow[]
+
+  @@unique([doctorId, date])
+  @@map("availability_overrides")
+}
+
+model AvailabilityWindow {
+  id          String               @id @default(uuid()) @db.Uuid
+  overrideId  String               @map("override_id") @db.Uuid
+  startMinute Int                  @map("start_minute")
+  endMinute   Int                  @map("end_minute")
+  override    AvailabilityOverride @relation(fields: [overrideId], references: [id], onDelete: Cascade)
+
+  @@unique([overrideId, startMinute])
+  @@map("availability_windows")
+}
+
+model Patient {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String        @db.VarChar(120)
+  phone        String        @unique @db.VarChar(16)
+  dateOfBirth  DateTime      @map("date_of_birth") @db.Date
+  flags        PatientFlag[] @default([])
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  appointments Appointment[]
+
+  @@map("patients")
+}
+
+model Appointment {
+  id                    String                   @id @default(uuid()) @db.Uuid
+  doctorId              String                   @map("doctor_id") @db.Uuid
+  patientId             String                   @map("patient_id") @db.Uuid
+  startsAt              DateTime                 @map("starts_at") @db.Timestamptz(3)
+  endsAt                DateTime                 @map("ends_at") @db.Timestamptz(3)
+  slotMinutes           Int                      @map("slot_minutes")
+  status                AppointmentStatus        @default(BOOKED)
+  reason                String                   @db.VarChar(500)
+  cancelledAt           DateTime?                @map("cancelled_at") @db.Timestamptz(3)
+  depositAcknowledgedAt DateTime?                @map("deposit_acknowledged_at") @db.Timestamptz(3)
+  rescheduledFromId     String?                  @unique @map("rescheduled_from_id") @db.Uuid
+  createdAt             DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  doctor                Doctor                   @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patient               Patient                  @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  rescheduledFrom       Appointment?             @relation("Rescheduling", fields: [rescheduledFromId], references: [id], onDelete: Restrict)
+  replacement           Appointment?             @relation("Rescheduling")
+  statusEvents          AppointmentStatusEvent[]
+
+  @@index([doctorId, startsAt])
+  @@index([patientId, startsAt])
+  @@index([patientId, status, cancelledAt])
+  @@map("appointments")
+}
+
+model AppointmentStatusEvent {
+  id            String             @id @default(uuid()) @db.Uuid
+  appointmentId String             @map("appointment_id") @db.Uuid
+  fromStatus    AppointmentStatus? @map("from_status")
+  toStatus      AppointmentStatus  @map("to_status")
+  occurredAt    DateTime           @map("occurred_at") @db.Timestamptz(3)
+  appointment   Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+
+  @@index([appointmentId, occurredAt])
+  @@map("appointment_status_events")
+}

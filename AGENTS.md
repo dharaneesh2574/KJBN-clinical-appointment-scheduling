@@ -30,12 +30,13 @@ and explicit SOLID principles. Keep these choices unless the user changes them.
 - `backend/`: NestJS scaffold, Jest, ESLint/Prettier, Prisma 7 configuration.
 - `backend/src/prisma/`: shared Nest provider with PostgreSQL adapter and database
   connect/disconnect lifecycle. Feature modules import `PrismaModule`.
-- `backend/prisma/schema.prisma`: PostgreSQL datasource, no domain models yet.
+- `backend/prisma/schema.prisma`: M1 entities, relations, and committed initial SQL migration.
   Generated client goes to `backend/src/generated/prisma/` and is ignored.
-- `backend/.env.example`: sanitized `DATABASE_URL` and `PORT` placeholders.
-- Root `README.md`: initial setup notes; not yet the assignment's required format.
-- No domain implementation, migrations, seed, or verified deployment is implied
-  by the scaffold. Existing database-mocked tests do not prove database behavior.
+- `backend/.env.example`: sanitized database, port, CORS, mode, and reviewer-mode settings.
+- Root `README.md`: required ordered sections, numbered M1 assumptions, and verified setup notes.
+- M1 has pure domain entities, a repeatable fictional seed, 25 unit tests, and 10
+  real-PostgreSQL integration tests. The 35 R1–R7 acceptance TODOs await M2. No
+  hosted deployment or complete business-rule enforcement is implied.
 
 Use the committed package manifests and lockfiles as the version authority. Keep
 the existing monorepo and npm setup. Do not re-scaffold or generate business logic.
@@ -267,7 +268,8 @@ Existing commands (run within the named app):
 `backend`'s current `npm run lint` applies fixes. For read-only lint verification,
 use `npx eslint "{src,apps,libs,test}/**/*.ts"`. Generation/build does not require
 database credentials; startup/migration/database integration tests require a real
-configured PostgreSQL instance. No seed or all-suite command exists yet.
+configured PostgreSQL instance. `npm run prisma:seed`, `npm run test:integration` (isolated `TEST_DATABASE_URL`),
+and `npm run test:rules` now exist. No final all-required-suite gate exists yet.
 
 ## Milestones: follow in order
 
@@ -280,8 +282,8 @@ evidence in SUBMISSION.md. Never invent history or retroactively relabel old com
 
 | Milestone | Exit gate and expected deliverables | Current status |
 | --- | --- | --- |
-| M0 — Scaffold | Existing React/NestJS structure; linters/formatters; env examples for both apps; README skeleton naming Problem 2; verified setup. | Verified 2026-10-19: both builds/linters, configuration tests, and mocked HTTP test pass; commit recorded with M1 evidence. |
-| M1 — Domain model | Entities; schema and reproducible migrations; realistic repeatable seed; R1–R7 test cases written (may initially fail); numbered ambiguity decisions. | Not started |
+| M0 — Scaffold | Existing React/NestJS structure; linters/formatters; env examples for both apps; README skeleton naming Problem 2; verified setup. | Complete 2026-10-19, `c9a3346`: both builds/linters, initialized config, env examples, README skeleton, mocked HTTP test. |
+| M1 — Domain model | Entities; schema and reproducible migrations; realistic repeatable seed; R1–R7 test cases written (may initially fail); numbered ambiguity decisions. | Verified 2026-10-19: 25 unit + 10 real-DB tests; 35 explicit M2 TODOs; completion hash recorded with container evidence. |
 | M2 — Business rules | Testable use cases/policies; all core rules pass; atomic rescheduling and real PostgreSQL concurrency evidence; boundary tests. HTTP not required yet. | Not started |
 | M3 — API | Core endpoints; DTO validation; consistent errors; structured request logging; request clock; OpenAPI; passing API tests. | Not started |
 | M4 — UI | All required flows call the local API; IST display; loading/error/empty states; flags explained; usable at laptop and phone widths. | Not started |
