@@ -6,7 +6,8 @@ booking workflows are not yet available.
 
 ## 2. Live links
 
-No public deployment yet. Local UI: http://localhost:5173. Local backend:
+No public deployment yet. Container UI: http://localhost:8080; Vite UI:
+http://localhost:5173. Local backend:
 http://localhost:3000. API documentation and cold-start measurements are pending M3/M5.
 
 ## 3. Tech stack
@@ -35,6 +36,40 @@ code must not read environment variables or import NestJS/Prisma.
 ## 5. Running locally
 
 Prerequisites: Node.js 24 LTS, npm, PostgreSQL, and (for containers) Docker Compose v2.
+
+### Containers (from the project root)
+
+```sh
+cp .env.example .env
+# Set your local PostgreSQL password and optional host ports in .env.
+docker compose up --build -d
+# Seed is explicit; normal startup only migrates.
+./scripts/migrate-and-seed.sh
+```
+
+The UI runs at http://localhost:8080 and proxies `/api/` to the backend; the backend
+is also available at http://localhost:3000. PostgreSQL stays on the private Compose
+network and persists in the `postgres-data` volume. Root Compose settings and
+`backend/.env` are separate: containers receive settings directly from Compose.
+Use URL-safe characters for root `POSTGRES_USER`, `POSTGRES_PASSWORD`, and
+`POSTGRES_DB`, since Compose builds the database URL from these values. Changing
+credentials on an existing PostgreSQL volume does not change the stored database
+role password; keep settings consistent or manage that password explicitly.
+
+Images are tagged `dharaneesh2574/kjbn-frontend:latest`,
+`dharaneesh2574/kjbn-backend:latest`, and
+`dharaneesh2574/kjbn-backend:latest-tooling`. `IMAGE_TAG` changes their tags. The
+tooling image holds the Prisma CLI/seed/tests; the non-root backend runtime holds
+only production dependencies and compiled code. Frontend nginx also runs without
+root. The migration job waits for healthy PostgreSQL; backend startup waits for
+successful migration; frontend startup waits for the backend HTTP check.
+
+`docker compose down` stops the stack and keeps the database volume. Rebuild after
+code changes with `docker compose up --build -d`. Do not delete volumes to perform
+routine upgrades. Example-only verification may use `--env-file .env.example`;
+normal development uses the private `.env` you created.
+
+### Native development
 
 ```sh
 cd backend
@@ -73,9 +108,18 @@ The suite applies migrations and removes only its own test fixtures.
 
 ## 5a. Deployment
 
-No hosting provider or public deployment yet. Do not treat local containers as a
-verified hosted deployment. Prisma generation runs after install and before
-build; development dependencies must be installed in the build/migration stage.
+No hosting provider or public deployment yet. Local Docker verification is a
+subset of M5 explicitly requested early; hosted deployment, dedicated readiness,
+and CI remain pending. `docker-compose.yml`, service Dockerfiles, and
+`scripts/migrate-and-seed.sh` are the local build/migrate/seed path. Re-seeding is
+explicit and preserves catalog edits. Prisma generation runs after install and
+before build. OpenSSL and Prisma engine preparation are included in the tooling
+image for reliable migration execution. PostgreSQL must support `btree_gist`.
+
+The app images are built/tagged locally, not published to Docker Hub. Publishing
+can be performed separately after `docker login` with
+`docker compose push frontend backend migrate`; base PostgreSQL/nginx images remain upstream images.
+Do not use the local example credentials for a hosted deployment.
 
 ## 6. Running tests and coverage
 
@@ -92,6 +136,20 @@ Read-only lint: `npx eslint src test prisma.config.ts`. Frontend checks:
 database provider; they do not verify real database behavior. `npm run test:integration` runs real PostgreSQL migration/constraint/concurrent
 insert/seed tests (requires isolated `TEST_DATABASE_URL`). `npm run test:rules`
 reports 35 explicit M2 TODO cases. These TODOs are not passing business-rule tests.
+From the root, the isolated Docker database suite needs no native PostgreSQL:
+
+```sh
+docker compose --profile test run --build --rm integration
+```
+
+It uses a separate `kjbn_test_m1` database on tmpfs, never the application's named
+volume. Ten tests cover migration checks, FK/phone/duration constraints, concurrent
+doctor/patient overlap inserts, rollback, date semantics, audit events, and repeat
+seeding. Use `docker compose stop test-db` after testing. Fresh disposable test
+containers replay the migration; normal migrations are never rewritten or reset.
+The integration runner enables Jest VM modules for Prisma's dynamic imports,
+following [Jest's documentation](https://jestjs.io/docs/ecmascript-modules).
+
 Unit coverage is 78.26% of handwritten backend lines; generated Prisma files
 are excluded, while bootstrap/module wiring remains in the denominator. See
 `coverage.txt`. Final business-rule coverage and an all-required-suite gate remain
@@ -180,7 +238,8 @@ are preserved. A fresh database gives the exact initial catalog.
 ## 11. Known limitations
 
 No booking API, business use cases, integrated scheduling UI, public deployment,
-CI, or hosted verification yet. Status is tracked in `AGENTS.md` and `SUBMISSION.md`.
+CI, dedicated database-readiness endpoint, or hosted verification yet. The Docker
+HTTP health check currently uses the scaffold greeting, not a readiness query. Status is tracked in `AGENTS.md` and `SUBMISSION.md`.
 No final coverage or concurrency-safety claim is made by the scaffold.
 
 ## 12. AI and third-party usage

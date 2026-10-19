@@ -70,3 +70,11 @@ context. No unavailable prompts or tool results are invented.
 - Use note: Complete/verify M0 first, model M1 entities/migrations/seed and explicit
   decisions, then add the explicitly requested container subset of M5 early.
   Verification and final milestone hashes are recorded in README/SUBMISSION.
+
+- Verified outcome for request 5: M0 configuration committed as `c9a3346`; M1
+  domain/migration/seed committed as `7e795de`. 25 unit tests, 10 real-PostgreSQL
+  tests, and the mocked HTTP check pass; 35 behavioral acceptance cases are TODO
+  for M2. Docker images were built locally under `dharaneesh2574/*`; full-stack
+  startup, nginx API proxy, allowed/excluded CORS origins, explicit seed helper,
+  and schema consistency were verified. Root `.env` was initialized from the
+  local example and remains ignored. No images or hosted application were published.

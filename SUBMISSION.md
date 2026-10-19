@@ -3,8 +3,8 @@
 Problem 2 scaffold: React/Vite frontend and NestJS backend connected through
 Prisma's PostgreSQL adapter. Environment configuration is validated and injected.
 M1 models all required entities with migration constraints, a fictional seed,
-and real-PostgreSQL tests. Local container verification is in progress; core
-booking workflows are not yet implemented.
+and real-PostgreSQL tests. Local frontend/backend/database containers, proxy, CORS, migration and seed paths
+are verified; core booking workflows are not yet implemented.
 
 ## B. Three design decisions
 
@@ -35,11 +35,11 @@ and unexpected exceptions; this envelope and structured logging are pending M3.
 | Milestone | Date completed | Actual commit hash |
 | --- | --- | --- |
 | M0 | 2026-10-19 | `c9a3346` |
-| M1 | Verified 2026-10-19 | Hash recorded in next milestone commit |
+| M1 | 2026-10-19 | `7e795de` |
 | M2 | Not started | — |
 | M3 | Not started | — |
 | M4 | Not started | — |
-| M5 | Container setup requested early; incomplete | — |
+| M5 | Local container subset verified 2026-10-19; milestone incomplete | Pending full deployment gate |
 | M6 | Not started | — |
 
 ## F. If I had two more days
@@ -64,6 +64,6 @@ Provisional scores describe current partial implementation, not the final produc
 | API design | 8 | 1 | Core endpoints pending |
 | UI usability | 6 | 1 | Starter UI |
 | Testing | 7 | 2 | 25 unit and 10 real-DB tests; M2 acceptance TODOs remain |
-| Deployment and operability | 5 | 1 | Container verification in progress |
+| Deployment and operability | 5 | 2 | Healthy local stack; hosting/readiness/CI pending |
 | Git hygiene | 4 | 2 | Incremental history; milestone tracking started |
 | Documentation and write-up | 4 | 2 | Required structure present; final evidence pending |

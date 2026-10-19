@@ -283,11 +283,11 @@ evidence in SUBMISSION.md. Never invent history or retroactively relabel old com
 | Milestone | Exit gate and expected deliverables | Current status |
 | --- | --- | --- |
 | M0 — Scaffold | Existing React/NestJS structure; linters/formatters; env examples for both apps; README skeleton naming Problem 2; verified setup. | Complete 2026-10-19, `c9a3346`: both builds/linters, initialized config, env examples, README skeleton, mocked HTTP test. |
-| M1 — Domain model | Entities; schema and reproducible migrations; realistic repeatable seed; R1–R7 test cases written (may initially fail); numbered ambiguity decisions. | Verified 2026-10-19: 25 unit + 10 real-DB tests; 35 explicit M2 TODOs; completion hash recorded with container evidence. |
+| M1 — Domain model | Entities; schema and reproducible migrations; realistic repeatable seed; R1–R7 test cases written (may initially fail); numbered ambiguity decisions. | Verified 2026-10-19: 25 unit + 10 real-DB tests; 35 explicit M2 TODOs; `7e795de`. |
 | M2 — Business rules | Testable use cases/policies; all core rules pass; atomic rescheduling and real PostgreSQL concurrency evidence; boundary tests. HTTP not required yet. | Not started |
 | M3 — API | Core endpoints; DTO validation; consistent errors; structured request logging; request clock; OpenAPI; passing API tests. | Not started |
 | M4 — UI | All required flows call the local API; IST display; loading/error/empty states; flags explained; usable at laptop and phone widths. | Not started |
-| M5 — Deployment | Service Dockerfiles/build specs; one-command local backend + DB + UI; provider config; migrate-and-seed script; live seeded UI/API; CORS; health endpoint; CI tests. | Not started |
+| M5 — Deployment | Service Dockerfiles/build specs; one-command local backend + DB + UI; provider config; migrate-and-seed script; live seeded UI/API; CORS; health endpoint; CI tests. | User requested container subset early: Dockerfiles/root Compose/CORS/migrate-seed path verified 2026-10-19; frontend/backend/DB healthy, proxy and seed checked. Hosted deployment/readiness/CI pending. |
 | M6 — Documentation | Exact README/SUBMISSION formats; prompt log and disclosure; committed coverage summary; clean-clone/hosted edge-case verification; final `v1.0` tag. | Not started |
 
 Each milestone must end with at least one commit naming `[M0]` through `[M6]`.
