@@ -27,8 +27,10 @@ export interface DateOverride {
 export function validateWindows(
   windows: readonly AvailabilityWindow[],
 ): readonly AvailabilityWindow[] {
+  if (!Array.isArray(windows))
+    throw new DomainValidationError('availability windows');
   const sorted = windows
-    .map((window) => ({ ...window }))
+    .map((window: AvailabilityWindow) => ({ ...window }))
     .sort((a, b) => a.startMinute - b.startMinute);
   for (let index = 0; index < sorted.length; index += 1) {
     const window = sorted[index];
@@ -48,16 +50,17 @@ export function validateWindows(
   return sorted;
 }
 
+export function requireWeekday(weekday: number): number {
+  if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) {
+    throw new DomainValidationError('ISO weekday');
+  }
+  return weekday;
+}
+
 export function createWeeklyAvailability(
   input: WeeklyAvailability,
 ): WeeklyAvailability {
-  if (
-    !Number.isInteger(input.weekday) ||
-    input.weekday < 1 ||
-    input.weekday > 7
-  ) {
-    throw new DomainValidationError('ISO weekday');
-  }
+  requireWeekday(input.weekday);
   validateWindows([input]);
   return {
     ...input,

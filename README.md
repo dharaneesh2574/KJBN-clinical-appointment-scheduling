@@ -1,8 +1,8 @@
 # 1. Title and one-liner
 
 **KJBN Clinic Appointment Scheduler — Problem 2.** Scheduling for a two-doctor
-clinic using React, NestJS, PostgreSQL, and Prisma. M0 and M1 establish the data model;
-booking workflows are not yet available.
+clinic using React, NestJS, PostgreSQL, and Prisma. M2 scheduling rules and protected
+application use cases are verified; their HTTP endpoints and UI remain M3/M4.
 
 ## 2. Live links
 
@@ -27,7 +27,13 @@ flowchart LR
   P --> DB[Prisma / PostgreSQL]
 ```
 
-The diagram is the target architecture; use cases/API are pending M2/M3.
+M2 implements the use cases, policies and persistence boundary; HTTP/UI remain M3/M4.
+`appointments/application/` owns booking, cancellation, final status, atomic
+rescheduling and advisory free slots. `availability/` owns availability edits;
+`doctors/` owns protected doctor-setting edits. Pure domain policies depend only on
+explicit types and small ports; Nest modules bind them to Prisma and an injected clock.
+All scheduling writes share a PostgreSQL transaction lock. See
+[M2 verification and design](docs/m2-verification.md).
 `frontend/` and `backend/` share one root Git repository and `.gitignore`.
 `backend/src/common/config/` initializes a validated, injected `AppConfig` from
 process variables and `backend/.env`. Prisma owns connection lifecycle. Domain
@@ -131,29 +137,43 @@ npm run test:e2e -- --runInBand
 npm run test:cov -- --runInBand
 ```
 
-Read-only lint: `npx eslint src test prisma.config.ts`. Frontend checks:
-`npm run lint` and `npm run build` from `frontend/`. Existing HTTP tests mock the
-database provider; they do not verify real database behavior. `npm run test:integration` runs real PostgreSQL migration/constraint/concurrent
-insert/seed tests (requires isolated `TEST_DATABASE_URL`). `npm run test:rules`
-reports 35 explicit M2 TODO cases. These TODOs are not passing business-rule tests.
-From the root, the isolated Docker database suite needs no native PostgreSQL:
+Read-only lint: `npx eslint src test prisma.config.ts prisma/seed.ts`.
+`npx tsc --noEmit --incremental false` also checks test/seed types. Frontend checks
+remain `npm run lint` and `npm run build` from `frontend/`.
+
+`npm test` runs 99 tests, including 74 executable R1–R7 acceptance cases; there are
+no remaining acceptance TODOs. `npm run test:rules` runs only those 74 cases.
+`npm run test:integration` runs 30 real-PostgreSQL migration, constraint, seed,
+application concurrency and rollback tests against isolated `TEST_DATABASE_URL`
+(database name must start with `kjbn_test_`). `test:e2e` is currently the scaffold
+HTTP smoke test with a mocked database; core API tests arrive in M3.
+
+One command runs all current suites from `backend/` with the isolated URL set:
 
 ```sh
-docker compose --profile test run --build --rm integration
+npm run test:all
 ```
 
-It uses a separate `kjbn_test_m1` database on tmpfs, never the application's named
-volume. Ten tests cover migration checks, FK/phone/duration constraints, concurrent
-doctor/patient overlap inserts, rollback, date semantics, audit events, and repeat
-seeding. Use `docker compose stop test-db` after testing. Fresh disposable test
-containers replay the migration; normal migrations are never rewritten or reset.
-The integration runner enables Jest VM modules for Prisma's dynamic imports,
-following [Jest's documentation](https://jestjs.io/docs/ecmascript-modules).
+Or from the root without native PostgreSQL (example credentials are test-only):
 
-Unit coverage is 78.26% of handwritten backend lines; generated Prisma files
-are excluded, while bootstrap/module wiring remains in the denominator. See
-`coverage.txt`. Final business-rule coverage and an all-required-suite gate remain
-pending M2.
+```sh
+docker compose --env-file .env.example --profile test run --build --rm integration npm run test:all
+```
+
+The full gate passes 99 unit/acceptance, 1 HTTP smoke and 30 real-DB tests. Docker
+uses a separate `kjbn_test_m1` database on tmpfs, never the application's named
+volume. Use `docker compose --env-file .env.example stop test-db` afterward.
+Integration suites deploy the committed migration and remove their own fixtures;
+seed tests use only this isolated database. Jest VM modules support Prisma's dynamic
+imports. No tests depend on a public hosted service.
+
+`npm run test:cov -- --runInBand` generates coverage and enforces business-module
+thresholds. Business-code line coverage is **96.76%**; overall handwritten backend
+line coverage is **73.16%**. Overall excludes generated Prisma code only, and retains
+bootstrap, module wiring and database adapters in the denominator. Business scope
+includes feature domain/application code and shared domain values/clock. The real-DB
+and HTTP suites are separate evidence; their coverage is not merged. See
+[coverage.txt](coverage.txt) and [M2 evidence](docs/m2-verification.md).
 
 ## 7. API overview
 
@@ -165,20 +185,22 @@ Doctor/availability/patient/appointment routes and OpenAPI are pending M3.
 
 ## 8. Business rules and assumptions
 
-| Rule | M1 evidence | Remaining M2 work |
+| Rule | Implemented M2 behavior | Tests |
 | --- | --- | --- |
-| R1 | Window bounds/overlap checks and override/leave fixtures | Effective availability, grid, edit protection |
-| R2 | Doctor exclusion constraint; concurrent insert test | Deliberate application conflict handling |
-| R3 | Patient exclusion constraint; concurrent cross-doctor insert test | Application workflow checks |
-| R4 | Positive daily-cap field/check | Atomic doctor-day capacity enforcement |
-| R5 | Cancellation timestamp check, status history, penalty fixtures | Eligibility, lookback, acknowledgement and lifecycle policies |
-| R6 | Predecessor relation and database rollback test | Protected cancel-and-book use case |
-| R7 | Offset/date value validation | Injected-clock past/60-day checks |
+| R1 | Effective windows, complete override replacement, slot grid, protected edits | R1 acceptance + DB booking/edit races |
+| R2 | Half-open doctor overlap check and GiST constraint | R2 acceptance + concurrent use-case bookings |
+| R3 | Patient overlap across doctors | R3 acceptance + concurrent patient bookings/reschedules |
+| R4 | Atomic IST doctor-day cap; both cancellation statuses excluded | R4 acceptance + final-capacity/cap-edit races |
+| R5 | Cancellation boundary, lifecycle, derived penalties and deposit acknowledgement | R5 acceptance + status/history/penalty persistence |
+| R6 | Atomic linked cancel + book; rollback preserves original/history | R6 acceptance + failure-after-insert and concurrent reschedules |
+| R7 | One injected time value, past and inclusive elapsed 60-day horizon | R7 acceptance + timezone/calendar boundaries |
 
-Integration evidence: `backend/test/domain.integration-spec.ts`. Pending behavioral
-cases: `backend/test/rules.acceptance.spec.ts`.
-Behavioral use cases remain M2. M1 decisions (project assumptions, not claims
-about unspecified source requirements):
+Tests: `backend/test/rules.acceptance.spec.ts` and
+`backend/test/scheduling.integration-spec.ts`; M1 schema evidence remains in
+`backend/test/domain.integration-spec.ts`. Full evidence is in
+[docs/m2-verification.md](docs/m2-verification.md).
+
+The following are documented project assumptions, not extra source requirements:
 
 1. **Intervals and slots:** half-open `[start, end)` permits adjacency. One booking
    lasts exactly the doctor's 15/30-minute slot, snapshotted on the appointment.
@@ -206,30 +228,46 @@ about unspecified source requirements):
 8. **Edits:** reject availability/doctor-setting edits that would invalidate
    existing occupied appointments, report conflicts, and require resolution. Do
    not rewrite historical slot durations or silently cancel bookings.
-9. **Reviewer clock:** `REVIEW_MODE` defaults false. M3 must validate an explicit
-   offset timestamp and provide one immutable clock snapshot per request; it must
-   never change global/system time. This request override is not implemented yet.
+9. **Reviewer clock:** `REVIEW_MODE` defaults false. M2 provides validated, frozen
+   snapshots and rejects overrides unless review mode is enabled by the caller.
+   Each use case reads its injected clock once. M3 must bind the trusted setting
+   and request scope to HTTP; no override header/endpoint exists yet. Global/system
+   time is never changed.
 10. **History:** restrict parent deletion, append status events, and link each
     replacement appointment to its cancelled original with at most one successor.
-    M2 must update status, history, cap, and reschedule rows in one transaction.
+    M2 updates status/history/reschedule rows and checks capacity in one transaction.
 11. **Seed:** stable fictional data uses reference `2026-10-19T03:00:00Z` (08:30 IST).
     Re-seeding inserts missing catalog rows and preserves existing data/edits;
     it never truncates tables. Use a fresh database for the exact initial fixture.
 
-M1's executable entity tests and real-database constraint tests cover structural
-invariants. `backend/test/rules.acceptance.spec.ts` records R1–R7 acceptance cases
-as explicit TODO tests; they are not evidence that the M2 rules already pass.
+12. **Concurrency:** one transaction-scoped PostgreSQL advisory lock serializes all
+    scheduling writers, including availability/settings edits and explicit seed
+    imports. Lock wait is bounded at 5 seconds; application transactions at 15
+    seconds. Busy transactions return `CONCURRENT_MODIFICATION` without hidden
+    retries. Free slots are coherent advisory snapshots and are rechecked on booking.
+13. **Setting/history protection:** edits validate every occupied row, including
+    history, against the resulting availability, grid and cap. Slot-duration
+    snapshots are preserved when settings change; new bookings use the new length.
+    Deactivation rejects while any Booked rows remain. Use future date overrides
+    when a weekly change would invalidate immutable history. UUIDs are canonical
+    lowercase; positive caps must fit PostgreSQL's signed integer representation.
 
 ## 9. Error handling and logging
 
 Environment validation rejects malformed values with credential-free messages.
-Business error envelopes, stable rule codes, and structured request logging are
-pending M3. Current HTTP behavior is NestJS scaffold behavior.
+M2 raises stable transport-independent `RuleError` codes (including overlap, cap,
+deposit, horizon, invalid transition, schedule conflict, missing resource and busy
+transaction) or `INVALID_DOMAIN_VALUE`. Conflict details contain appointment IDs,
+not patient data. Known transaction timeouts are translated; unexpected failures
+propagate. HTTP error envelopes/status mapping and structured request logging are
+pending M3; current HTTP behavior is still the scaffold behavior.
 
 ## 10. Reviewer aids
 
-`REVIEW_MODE` is validated configuration only; no request clock override endpoint
-or header is implemented yet. Never modify the host clock. For seeded history use reference `2026-10-19T03:00:00Z` (08:30 IST); see
+`REVIEW_MODE` is validated configuration; no HTTP clock override endpoint/header
+is implemented yet. Application-level tests use `FixedClock` and
+`snapshotClock(source, reviewMode, override?)` to test cancellations, expiry and
+request isolation. Every time-dependent operation reads the clock once. Never modify the host clock. For seeded history use reference `2026-10-19T03:00:00Z` (08:30 IST); see
 `docs/domain-model.md`. Phone `+12025550103` has two recent penalties and an
 acknowledged upcoming booking. `+12025550102` has one penalty. Re-run
 `npm run prisma:seed` explicitly to ensure missing catalog records; existing edits
@@ -237,13 +275,15 @@ are preserved. A fresh database gives the exact initial catalog.
 
 ## 11. Known limitations
 
-No booking API, business use cases, integrated scheduling UI, public deployment,
+No booking HTTP API, integrated scheduling UI, public deployment,
 CI, dedicated database-readiness endpoint, or hosted verification yet. The Docker
 HTTP health check currently uses the scaffold greeting, not a readiness query. Status is tracked in `AGENTS.md` and `SUBMISSION.md`.
-No final coverage or concurrency-safety claim is made by the scaffold.
+M2 business correctness and application concurrency are verified locally; hosted
+verification remains pending. The clinic-wide lock limits throughput, and schedule
+edits conservatively protect historical occupied rows. No stretch features started.
 
 ## 12. AI and third-party usage
 
 OpenAI Codex assisted with scaffolding, configuration, domain modeling, tests,
-and container setup. React/Vite and NestJS starter templates were retained.
+container setup, and M2 policies/use cases/concurrency tests. React/Vite and NestJS starter templates were retained.
 See [PROMPTS.md](PROMPTS.md) for requests and use notes.

@@ -1,7 +1,25 @@
-M1 unit coverage — 2026-10-19
-Command: npm run test:cov -- --runInBand --coverageReporters=json-summary --coverageReporters=text
-Scope: handwritten backend src; generated Prisma client excluded. Bootstrap and module wiring remain in the denominator.
+M2 unit + acceptance coverage — 2026-10-20
+Command (backend/): npm run test:cov -- --runInBand
+Result: 99 tests passed (74 rule acceptance cases + 25 existing unit tests).
 
-Overall: statements 76.43%, branches 85.45%, functions 88.88%, lines 78.26%
-25 unit tests passed. HTTP and PostgreSQL integration suites are separate and are not merged into these unit coverage figures.
-Business-rule coverage: not yet available; M2 use cases are pending. 35 acceptance TODO cases are recorded, not counted as implemented rules.
+Business code (19 feature domain/application + common/domain files):
+  Statements: 334/346 = 96.53%
+  Branches:   165/177 = 93.22%
+  Functions:  75/76   = 98.68%
+  Lines:      329/340 = 96.76%
+
+Overall handwritten backend source (Jest-reported percentages, truncated):
+  Statements: 390/548 = 71.16%
+  Branches:   205/248 = 82.66%
+  Functions:  84/119  = 70.58%
+  Lines:      379/518 = 73.16%
+
+Only src/generated/** is excluded. Bootstrap, Nest module wiring, configuration,
+clock infrastructure and persistence adapters remain in the overall denominator.
+Integration and HTTP coverage is not merged into these unit/acceptance figures.
+Separate full gate: 1 HTTP smoke test and 30 real-PostgreSQL tests passed.
+
+Jest enforces at least 80% lines/statements/branches/functions in appointments and
+availability domain modules, plus 80% lines/statements in application modules.
+Generated coverage/ reports are ignored; this sanitized snapshot is reviewable.
+Evidence and concurrency tradeoffs: docs/m2-verification.md.

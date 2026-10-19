@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
+import { acquireSchedulingLock } from '../src/appointments/infrastructure/scheduling-lock';
+import { prismaSchedulingStores } from '../src/appointments/infrastructure/prisma-scheduling-stores';
+import { assertScheduleEdit } from '../src/availability/domain/schedule-edit-policy';
 import { AppConfig } from '../src/common/config/app-config';
 import {
   appointments,
@@ -18,6 +21,7 @@ async function seed() {
   try {
     await client.$transaction(
       async (transaction) => {
+        await acquireSchedulingLock(transaction);
         for (const doctor of doctors) {
           await transaction.doctor.upsert({
             where: { id: doctor.id },
@@ -112,8 +116,18 @@ async function seed() {
             },
           });
         }
+        // Seed imports historical rows, so it intentionally bypasses booking's
+        // horizon/lifecycle checks, while preserving cap/availability invariants.
+        const { schedules } = prismaSchedulingStores(transaction);
+        for (const doctor of doctors) {
+          assertScheduleEdit(
+            await schedules.doctor(doctor.id),
+            await schedules.schedule(doctor.id),
+            await schedules.doctorAppointments(doctor.id),
+          );
+        }
       },
-      { timeout: 30000 },
+      { isolationLevel: 'ReadCommitted', maxWait: 5000, timeout: 30000 },
     );
     console.log(
       `Fictional seed catalog ensured; reviewer reference: ${SEED_REFERENCE_INSTANT}`,

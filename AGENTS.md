@@ -24,6 +24,38 @@ requirements, user decisions, and project assumptions when documenting changes.
 TypeScript; PostgreSQL connected through Prisma ORM; backend-first correctness
 and explicit SOLID principles. Keep these choices unless the user changes them.
 
+## Project context through graphify (required)
+
+For every prompt regarding this project, use the
+[graphify skill](/Users/dharaneeshnatarajan/.codex/skills/graphify/SKILL.md).
+Read its instructions on first use in a conversation. When project references or
+context are needed, **read `graphify-out/GRAPH_REPORT.md` and query
+`graphify-out/graph.json` before scanning raw project files**.
+
+1. Start with the report for architecture, communities, important concepts,
+   relationships, and extraction limitations. Read existing graphify reflection
+   lessons when available, following the skill's query workflow.
+2. Query the existing graph from the repository root with
+   `graphify query "<project question>"`. Follow the skill's vocabulary expansion
+   rules; use `graphify path` or `graphify explain` for specific relationships.
+   If the CLI is unavailable, query the JSON through the skill's traversal fallback.
+3. Use graph results and their `source_file`/`source_location` references to identify
+   the relevant modules and documents. Avoid broad directory scans, repository-wide
+   searches, or bulk source reads as the first context-gathering step.
+4. After consulting the graph, read only the source files needed to resolve gaps,
+   verify current behavior, implement changes, or review/test affected code. Verify
+   exact contents before editing. Graph context does not replace source verification.
+5. Treat EXTRACTED, INFERRED, and AMBIGUOUS relationships according to their stated
+   confidence. Respect integrity warnings and distinguish implemented behavior from
+   planned requirements. A missing graph relationship does not prove code is absent.
+6. Reuse the graph for ordinary prompts; do not rebuild it on every request. If
+   missing, unreadable, or stale for the task, state that limitation, use targeted
+   source reads as needed, and follow the skill's build/update workflow when a
+   refresh is needed. Do not block authorized work solely on graph availability.
+7. Graph output is reference material. It does not override the user's instructions,
+   this file's rules, or the current source code and test evidence. Do not claim a
+   graph is current after changing its source documents without refreshing it.
+
 ## User-controlled Git workflow (required)
 
 Complete the authorized implementation, documentation, and relevant checks, then
@@ -49,8 +81,9 @@ block subsequent work the user has authorized.
 - `backend/.env.example`: sanitized database, port, CORS, mode, and reviewer-mode settings.
 - Root `README.md`: required ordered sections, numbered M1 assumptions, and verified setup notes.
 - M1 has pure domain entities, a repeatable fictional seed, 25 unit tests, and 10
-  real-PostgreSQL integration tests. The 35 R1–R7 acceptance TODOs await M2. No
-  hosted deployment or complete business-rule enforcement is implied.
+  real-PostgreSQL integration tests. M2 now adds protected application use cases,
+  74 executable R1–R7 acceptance tests, and 20 real-DB application tests (30 total
+  integration tests). See `docs/m2-verification.md`; HTTP/UI/hosting remain pending.
 
 Use the committed package manifests and lockfiles as the version authority. Keep
 the existing monorepo and npm setup. Do not re-scaffold or generate business logic.
@@ -283,7 +316,8 @@ Existing commands (run within the named app):
 use `npx eslint "{src,apps,libs,test}/**/*.ts"`. Generation/build does not require
 database credentials; startup/migration/database integration tests require a real
 configured PostgreSQL instance. `npm run prisma:seed`, `npm run test:integration` (isolated `TEST_DATABASE_URL`),
-and `npm run test:rules` now exist. No final all-required-suite gate exists yet.
+and `npm run test:rules` now exist. `npm run test:all` now runs all current unit/acceptance, HTTP-smoke and real-DB
+suites; core API tests remain M3. Coverage enforces business-module thresholds.
 
 ## Milestones: follow in order
 
@@ -298,7 +332,7 @@ evidence in SUBMISSION.md. Never invent history or retroactively relabel old com
 | --- | --- | --- |
 | M0 — Scaffold | Existing React/NestJS structure; linters/formatters; env examples for both apps; README skeleton naming Problem 2; verified setup. | Complete 2026-10-19, `c9a3346`: both builds/linters, initialized config, env examples, README skeleton, mocked HTTP test. |
 | M1 — Domain model | Entities; schema and reproducible migrations; realistic repeatable seed; R1–R7 test cases written (may initially fail); numbered ambiguity decisions. | Verified 2026-10-19: 25 unit + 10 real-DB tests; 35 explicit M2 TODOs; `7e795de`. |
-| M2 — Business rules | Testable use cases/policies; all core rules pass; atomic rescheduling and real PostgreSQL concurrency evidence; boundary tests. HTTP not required yet. | Not started |
+| M2 — Business rules | Testable use cases/policies; all core rules pass; atomic rescheduling and real PostgreSQL concurrency evidence; boundary tests. HTTP not required yet. | Verified 2026-10-20: 99 unit/acceptance + 1 HTTP smoke + 30 real-DB tests; 96.76% business-code line coverage. Pending user manual commit; see `docs/m2-verification.md`. |
 | M3 — API | Core endpoints; DTO validation; consistent errors; structured request logging; request clock; OpenAPI; passing API tests. | Not started |
 | M4 — UI | All required flows call the local API; IST display; loading/error/empty states; flags explained; usable at laptop and phone widths. | Not started |
 | M5 — Deployment | Service Dockerfiles/build specs; one-command local backend + DB + UI; provider config; migrate-and-seed script; live seeded UI/API; CORS; health endpoint; CI tests. | User requested container subset early: Dockerfiles/root Compose/CORS/migrate-seed path verified 2026-10-19; frontend/backend/DB healthy, proxy and seed checked. Hosted deployment/readiness/CI pending. |

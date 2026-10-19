@@ -1,4 +1,4 @@
-# M1 domain model
+# Domain model
 
 Terms are defined in [GLOSSARY.md](../GLOSSARY.md). Numbered decisions live in
 [README section 8](../README.md#8-business-rules-and-assumptions).
@@ -22,12 +22,12 @@ erDiagram
 | AvailabilityWindow | A window belonging to a date override; an empty parent's collection means leave |
 | Patient | UUID, name, normalized unique E.164 phone, date-only DOB, assistance flags |
 | Appointment | Doctor/patient references, UTC start/end, slot snapshot, status, reason, cancellation/deposit times, original reschedule reference |
-| AppointmentStatusEvent | Booked creation or final-status event with occurrence instant; M2 must write it with the appointment transaction |
+| AppointmentStatusEvent | Booked creation or final-status event with occurrence instant; M2 writes it with the appointment transaction |
 
 Pure TypeScript types and creation validators live under each feature's `domain/`
 folder. `common/domain/validation.ts` contains actual shared value validation only.
-Prisma persistence types stay outside domain code. API mappings and application
-ports are added with their real consumers in M2/M3.
+Prisma persistence types stay outside domain code. M2 application ports and
+adapters now serve real use cases; HTTP response mappings remain M3.
 
 ## Storage invariants
 
@@ -47,10 +47,12 @@ deleting a date override cascades only its own availability windows. Instants us
 
 These constraints do not enforce availability selection, grid alignment, daily
 caps, penalty eligibility, horizon, lifecycle transitions of the appointment row,
-or complete history writes. M2 must evaluate these under transaction-scoped
-repositories with a consistent doctor/patient locking order or bounded serializable
-retries. A preflight query alone is insufficient. The R1–R7 TODO inventory specifies
-these gates without claiming them as implemented.
+or complete history writes directly in SQL. M2 evaluates these inside a protected
+application transaction using a clinic-wide advisory lock before its first read.
+All application writers, schedule/settings edits, and explicit seed imports share
+that lock. Real-DB use-case races, atomic rollback and bounded busy responses pass;
+see [M2 verification](m2-verification.md). A preflight query outside this boundary
+is insufficient. The original R1–R7 TODO inventory is now executable.
 
 ## Fictional seed catalog
 
@@ -64,12 +66,14 @@ Reference: **2026-10-19 08:30 IST** (`2026-10-19T03:00:00Z`).
   a two-penalty patient, a one-penalty patient, and a linked reschedule.
 - Fourteen status events, including initial booking history and final states.
 
-`npm run prisma:seed` runs one transaction of stable-ID insert-if-missing upserts.
+`npm run prisma:seed` runs one locked transaction of stable-ID insert-if-missing
+upserts, then checks resulting occupied schedules/caps before commit.
 It preserves edits and never deletes records. A conflict with existing user data
 rolls back the catalog transaction rather than silently rewriting it. Seed only
 when explicitly requested; normal container startup runs migrations, not seed.
 The reference is fixed so penalty/history examples do not change between runs.
-The request-scoped review clock is still pending M3.
+M2 provides an isolated validated clock snapshot; wiring its reviewer override
+to HTTP requests/configuration is pending M3.
 
 ## Primary references
 

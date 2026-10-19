@@ -27,7 +27,8 @@
     "prisma:seed": "prisma db seed",
     "test:integration": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-integration.json --runInBand",
     "test:rules": "jest --config ./test/jest-rules.json --runInBand",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "test:all": "npm test -- --runInBand && npm run test:e2e -- --runInBand && npm run test:integration"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -71,16 +72,47 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
+    "rootDir": ".",
+    "testRegex": "(src/.*\\.spec\\.ts$|test/rules\\.acceptance\\.spec\\.ts$)",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s",
-      "!generated/**"
+      "src/**/*.ts",
+      "!src/generated/**"
     ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "coverageDirectory": "coverage",
+    "testEnvironment": "node",
+    "coverageReporters": [
+      "text",
+      "json-summary",
+      "lcov"
+    ],
+    "coverageThreshold": {
+      "./src/appointments/domain/": {
+        "lines": 80,
+        "statements": 80,
+        "branches": 80,
+        "functions": 80
+      },
+      "./src/availability/domain/": {
+        "lines": 80,
+        "statements": 80,
+        "branches": 80,
+        "functions": 80
+      },
+      "./src/appointments/application/": {
+        "lines": 80,
+        "statements": 80
+      },
+      "./src/availability/application/": {
+        "lines": 80,
+        "statements": 80
+      },
+      "./src/doctors/application/": {
+        "lines": 80,
+        "statements": 80
+      }
+    }
   }
 }

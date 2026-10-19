@@ -95,3 +95,47 @@ context. No unavailable prompts or tool results are invented.
   migration, seed, and integration services. Added a required manual Git workflow
   to `AGENTS.md` and aligned milestone commit guidance. Docker files were unchanged;
   changes were left unstaged and uncommitted, with no push.
+
+## 7. Build a project knowledge graph
+
+- Date: 2026-10-20 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop; graphify skill.
+- Prompt (verbatim): `[$graphify](/Users/dharaneeshnatarajan/.codex/skills/graphify/SKILL.md)  .`
+- Use note: Apply the supplied graphify skill to the current repository, producing
+  an interactive HTML graph, graph data, and an audit report in `graphify-out/`.
+  Application implementation and Git commits are outside this request.
+
+## 8. Require graphify for project context
+
+- Date: 2026-10-20 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop; graphify skill.
+- Prompt (verbatim):
+
+  > Update the Agents.md to use [$graphify](/Users/dharaneeshnatarajan/.codex/skills/graphify/SKILL.md)  when processing a prompt regarding the project
+  > if need any reference use this&#x20;
+  > read `graphify-out/GRAPH_REPORT.md` and query `graphify-out/graph.json` for project context instead of scanning raw files first.
+
+- Outcome: Used the existing report and graph query to check guidance, then added
+  a required graphify workflow to `AGENTS.md`, with targeted source verification
+  and explicit handling of missing/stale graph context. No graph rebuild or Git
+  commit was performed for this documentation change.
+
+## 9. Implement M2 business rules
+
+- Date: 2026-10-20 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop; graphify skill; local TypeScript/Jest and PostgreSQL tooling.
+- Prompt (verbatim): `now implement the M2 milestone`
+- Use note: Verify preceding gates, implement R1–R7 policies and protected use cases,
+  replace acceptance TODOs with executable checks, and record real-PostgreSQL
+  concurrency/rollback evidence. Keep HTTP/UI work for later milestones and leave
+  all changes unstaged and uncommitted for manual review.
+
+- Verified outcome for request 9: M2 R1–R7 policies, protected use cases, Prisma
+  adapters, status events, availability/doctor edit protection and clock snapshots
+  are implemented. The full gate passes 99 unit/acceptance, 1 existing HTTP smoke,
+  and 30 real-PostgreSQL tests. Business-code line coverage is 96.76%; overall
+  backend unit/acceptance line coverage is 73.16%. Build, typecheck, read-only lint
+  and Prisma validation pass. The actual lock-timeout test exposed and verified
+  correction of Prisma 7's nested SQLSTATE handling. HTTP/UI remain M3/M4;
+  changes are left unstaged and uncommitted. Graph context is refreshed separately
+  below, without treating inferred graph relationships as implementation proof.
