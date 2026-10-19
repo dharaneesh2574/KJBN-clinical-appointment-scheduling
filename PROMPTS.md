@@ -78,3 +78,20 @@ context. No unavailable prompts or tool results are invented.
   startup, nginx API proxy, allowed/excluded CORS origins, explicit seed helper,
   and schema consistency were verified. Root `.env` was initialized from the
   local example and remains ignored. No images or hosted application were published.
+
+## 6. Explain Docker roles and reserve Git actions for the user
+
+- Date: 2026-10-19 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop.
+- Prompt (verbatim):
+
+  > why is there like 4 - 5 images seperate one for each seed integration
+  > is it necessary explain it to me
+  > and do not commit at the end
+  > complete all tasks the commit will be done by me manually
+  > so add it as a rule in agents.md
+
+- Outcome: Explained the four distinct images and shared tooling image used by
+  migration, seed, and integration services. Added a required manual Git workflow
+  to `AGENTS.md` and aligned milestone commit guidance. Docker files were unchanged;
+  changes were left unstaged and uncommitted, with no push.

@@ -24,6 +24,20 @@ requirements, user decisions, and project assumptions when documenting changes.
 TypeScript; PostgreSQL connected through Prisma ORM; backend-first correctness
 and explicit SOLID principles. Keep these choices unless the user changes them.
 
+## User-controlled Git workflow (required)
+
+Complete the authorized implementation, documentation, and relevant checks, then
+leave the changes unstaged and uncommitted for the user to review and commit
+manually. Do not automatically run `git add`, `git commit` (including amend), or
+`git push`. Only perform one of these actions when the user explicitly requests
+that specific action; earlier requests to commit or push do not authorize future
+tasks. Do not ask for commit/push approval as a routine final step.
+
+Report completed work and verification results. Record milestone implementation
+as verified but pending the user's manual commit when appropriate; add an actual
+commit hash only after that commit exists. A pending manual commit alone must not
+block subsequent work the user has authorized.
+
 ## Current repository baseline
 
 - `frontend/`: React + Vite scaffold, npm scripts, ESLint, TypeScript.
@@ -290,8 +304,8 @@ evidence in SUBMISSION.md. Never invent history or retroactively relabel old com
 | M5 — Deployment | Service Dockerfiles/build specs; one-command local backend + DB + UI; provider config; migrate-and-seed script; live seeded UI/API; CORS; health endpoint; CI tests. | User requested container subset early: Dockerfiles/root Compose/CORS/migrate-seed path verified 2026-10-19; frontend/backend/DB healthy, proxy and seed checked. Hosted deployment/readiness/CI pending. |
 | M6 — Documentation | Exact README/SUBMISSION formats; prompt log and disclosure; committed coverage summary; clean-clone/hosted edge-case verification; final `v1.0` tag. | Not started |
 
-Each milestone must end with at least one commit naming `[M0]` through `[M6]`.
-Use Conventional Commits: `type(scope): [Mx] imperative subject`, at most 72
+The user creates milestone commits manually, naming `[M0]` through `[M6]`.
+For those commits, use Conventional Commits: `type(scope): [Mx] imperative subject`, at most 72
 characters. Allowed types: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`, `ci`,
 `perf`. Example: `feat(appointments): [M2] reject overlapping bookings`.
 Keep logical incremental history, explain nontrivial choices in commit bodies,
