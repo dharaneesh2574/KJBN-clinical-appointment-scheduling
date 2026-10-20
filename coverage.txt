@@ -1,25 +1,31 @@
-M2 unit + acceptance coverage — 2026-10-20
-Command (backend/): npm run test:cov -- --runInBand
-Result: 99 tests passed (74 rule acceptance cases + 25 existing unit tests).
+M3 combined coverage — 2026-10-20
+Command (backend/): npm run test:cov:all
+Requires isolated TEST_DATABASE_URL (database name kjbn_test_*).
+Result: 214 tests passed: 113 unit/acceptance, 1 HTTP smoke, 70 real-DB API, 30 other real-DB.
 
-Business code (19 feature domain/application + common/domain files):
-  Statements: 334/346 = 96.53%
-  Branches:   165/177 = 93.22%
-  Functions:  75/76   = 98.68%
-  Lines:      329/340 = 96.76%
+Combined handwritten backend source (Jest-reported percentages):
+  statements: 1224/1263 = 96.91%
+  branches: 576/679 = 84.83%
+  functions: 257/261 = 98.46%
+  lines: 1162/1192 = 97.48%
 
-Overall handwritten backend source (Jest-reported percentages, truncated):
-  Statements: 390/548 = 71.16%
-  Branches:   205/248 = 82.66%
-  Functions:  84/119  = 70.58%
-  Lines:      379/518 = 73.16%
+Business code (28 feature domain/application + common/domain files):
+  statements: 427/437 = 97.71%
+  branches: 205/215 = 95.34%
+  functions: 100/100 = 100.0%
+  lines: 422/431 = 97.91%
 
-Only src/generated/** is excluded. Bootstrap, Nest module wiring, configuration,
-clock infrastructure and persistence adapters remain in the overall denominator.
-Integration and HTTP coverage is not merged into these unit/acceptance figures.
-Separate full gate: 1 HTTP smoke test and 30 real-PostgreSQL tests passed.
+Unit-only measurement (npm run test:cov -- --runInBand; 113 tests):
+  Overall statements: 480/1263 = 38%
+  Overall branches: 243/679 = 35.78%
+  Overall functions: 107/261 = 40.99%
+  Overall lines: 469/1192 = 39.34%
+  Business-code lines: 419/431 = 97.21%
 
-Jest enforces at least 80% lines/statements/branches/functions in appointments and
-availability domain modules, plus 80% lines/statements in application modules.
+Combined coverage instruments unit, HTTP and real-PostgreSQL suites in one Jest run.
+Only src/generated/** is excluded. main.ts bootstrap, Nest module wiring, DTOs,
+request logging, configuration and persistence adapters remain in the denominator.
+Unit-only coverage does not instrument HTTP/DB suites; it is not the final overall figure.
+The combined command enforces >=80% global metrics plus scoped business thresholds.
 Generated coverage/ reports are ignored; this sanitized snapshot is reviewable.
-Evidence and concurrency tradeoffs: docs/m2-verification.md.
+Evidence: docs/m3-verification.md.

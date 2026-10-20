@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
-import { acquireSchedulingLock } from '../src/appointments/infrastructure/scheduling-lock';
+import { acquireSchedulingLock } from '../src/common/infrastructure/scheduling-lock';
 import { prismaSchedulingStores } from '../src/appointments/infrastructure/prisma-scheduling-stores';
 import { assertScheduleEdit } from '../src/availability/domain/schedule-edit-policy';
 import { AppConfig } from '../src/common/config/app-config';

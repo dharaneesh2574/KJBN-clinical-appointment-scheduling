@@ -16,6 +16,8 @@ export interface Patient {
 }
 
 export function normalizePhone(phone: string): string {
+  if (typeof phone !== 'string')
+    throw new DomainValidationError('international phone');
   const normalized = phone.replace(/[\s().-]/g, '');
   if (!/^\+[1-9]\d{7,14}$/.test(normalized)) {
     throw new DomainValidationError('international phone');
@@ -28,16 +30,17 @@ export function createPatient(input: Patient, today: string): Patient {
   if (dateOfBirth > requireLocalDate(today)) {
     throw new DomainValidationError('future date of birth');
   }
+  if (!Array.isArray(input.flags))
+    throw new DomainValidationError('patient flags');
   if (
     input.flags.some(
-      (flag) =>
+      (flag: PatientFlag) =>
         flag !== 'MOBILITY_ASSISTANCE' && flag !== 'INTERPRETER_REQUIRED',
     )
   ) {
     throw new DomainValidationError('patient flags');
   }
   return {
-    ...input,
     id: requireId(input.id),
     name: requireText(input.name, 'patient name', 120),
     phone: normalizePhone(input.phone),

@@ -1,11 +1,10 @@
-import { Prisma, PrismaClient } from '../../generated/prisma/client';
+import { PrismaClient } from '../../generated/prisma/client';
 import {
   SchedulingStores,
   SchedulingUnitOfWork,
 } from '../domain/scheduling-store';
-import { RuleError } from '../../common/domain/rule-error';
-import { postgresErrorCode } from './postgres-error-code';
-import { acquireSchedulingLock } from './scheduling-lock';
+import { translateTransactionError } from '../../common/infrastructure/transaction-error';
+import { acquireSchedulingLock } from '../../common/infrastructure/scheduling-lock';
 import { prismaSchedulingStores } from './prisma-scheduling-stores';
 
 export class PrismaSchedulingUnitOfWork extends SchedulingUnitOfWork {
@@ -25,19 +24,7 @@ export class PrismaSchedulingUnitOfWork extends SchedulingUnitOfWork {
         { isolationLevel: 'ReadCommitted', maxWait: 5000, timeout: 15000 },
       );
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        (error.code === 'P2028' ||
-          error.code === 'P2034' ||
-          (error.code === 'P2010' && postgresErrorCode(error.meta) === '55P03'))
-      ) {
-        throw new RuleError(
-          'CONCURRENT_MODIFICATION',
-          'Scheduling is busy; retry the operation',
-        );
-      }
-      // Domain errors and unknown persistence failures retain their identity.
-      throw error;
+      throw translateTransactionError(error);
     }
   }
 }

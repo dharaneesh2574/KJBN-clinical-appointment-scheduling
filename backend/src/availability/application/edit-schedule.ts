@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { SchedulingUnitOfWork } from '../../appointments/domain/scheduling-store';
 import {
   AvailabilityWindow,
@@ -40,6 +41,10 @@ export class EditSchedule {
       );
       await schedules.replaceWeekly(doctorId, weekday, windows);
     });
+  }
+
+  setDateOverride(input: Omit<DateOverride, 'id'>): Promise<void> {
+    return this.putOverride({ ...input, id: randomUUID() });
   }
 
   async putOverride(input: DateOverride): Promise<void> {

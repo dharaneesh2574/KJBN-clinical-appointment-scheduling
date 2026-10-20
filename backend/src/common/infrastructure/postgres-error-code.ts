@@ -12,3 +12,12 @@ export function postgresErrorCode(metadata: unknown): string | undefined {
   const code = adapter.cause.originalCode;
   return typeof code === 'string' ? code : undefined;
 }
+
+export function postgresConstraintIndex(metadata: unknown): string | undefined {
+  if (!isRecord(metadata)) return undefined;
+  const adapter = metadata.driverAdapterError;
+  if (!isRecord(adapter) || !isRecord(adapter.cause)) return undefined;
+  const constraint = adapter.cause.constraint;
+  if (!isRecord(constraint)) return undefined;
+  return typeof constraint.index === 'string' ? constraint.index : undefined;
+}

@@ -139,3 +139,32 @@ context. No unavailable prompts or tool results are invented.
   correction of Prisma 7's nested SQLSTATE handling. HTTP/UI remain M3/M4;
   changes are left unstaged and uncommitted. Graph context is refreshed separately
   below, without treating inferred graph relationships as implementation proof.
+
+## 10. Refresh the project graph incrementally
+
+- Date: 2026-10-20 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop; graphify skill.
+- Prompt (verbatim): `[$graphify](/Users/dharaneeshnatarajan/.codex/skills/graphify/SKILL.md)  --update`
+- Use note: Detect changed/deleted sources against the existing manifest, update
+  only changed extraction, preserve stable graph identities and confidence labels,
+  regenerate the graph/report/HTML as needed, and retain integrity warnings.
+  Application code and Git staging/commits are outside this request.
+
+## 11. Implement M3 API
+
+- Date: 2026-10-20 (Asia/Kolkata).
+- Assistant/tool: OpenAI Codex desktop; graphify skill; NestJS official documentation; local TypeScript/Jest and PostgreSQL tooling.
+- Prompt (verbatim): `Proceed with M3 — API | Core endpoints; DTO validation; consistent errors; structured request logging; request clock; OpenAPI; passing API tests. | Not started |`
+- Use note: Verify the M2 foundation, expose core feature endpoints through validated
+  DTOs and explicit response mappings, add safe errors/correlated logs and a
+  request-isolated reviewer clock, generate OpenAPI, and verify real HTTP workflows.
+  Leave implementation/docs unstaged and uncommitted; UI remains M4.
+
+- Verified outcome for request 11: core API routes, strict nested DTOs, explicit
+  responses, consistent safe errors, one correlated JSON log per request,
+  configuration-bound request clocks and OpenAPI are implemented. 214 tests pass
+  (113 unit/acceptance, 1 smoke, 70 real-DB API and 30 other real-DB); combined line
+  coverage is 97.48% overall / 97.91% business. Build/typecheck/lint/schema checks
+  pass. A new DOB migration reconciles database bounds with reviewer-time policy;
+  actual duplicate-phone tests verified Prisma constraint translation. UI remains
+  M4. Existing user staging is preserved; no Git add/commit/push was performed.

@@ -27,7 +27,7 @@ erDiagram
 Pure TypeScript types and creation validators live under each feature's `domain/`
 folder. `common/domain/validation.ts` contains actual shared value validation only.
 Prisma persistence types stay outside domain code. M2 application ports and
-adapters now serve real use cases; HTTP response mappings remain M3.
+adapters now serve real use cases; M3 adds explicit HTTP response DTO mappings.
 
 ## Storage invariants
 
@@ -40,7 +40,7 @@ interval. Local-minute `int4range` constraints prevent overlapping weekly/overri
 windows. Adjacent intervals are permitted.
 
 Other checks enforce positive caps, valid slot lengths/durations, non-empty text,
-normalized phone format, non-future DOB, cancellation timestamp consistency, and
+normalized phone format, bounded DOB dates, cancellation timestamp consistency, and
 recorded event transitions. Foreign keys restrict deletion of history owners;
 deleting a date override cascades only its own availability windows. Instants use
 `timestamptz(3)`; DOB/override dates use `date`; recurring windows use local minutes.
@@ -72,8 +72,9 @@ It preserves edits and never deletes records. A conflict with existing user data
 rolls back the catalog transaction rather than silently rewriting it. Seed only
 when explicitly requested; normal container startup runs migrations, not seed.
 The reference is fixed so penalty/history examples do not change between runs.
-M2 provides an isolated validated clock snapshot; wiring its reviewer override
-to HTTP requests/configuration is pending M3.
+M3 binds the validated clock snapshot to each HTTP request and trusted review-mode
+configuration. Its DOB migration replaces the database wall-clock future check;
+application validation uses the same request snapshot. See [M3 evidence](m3-verification.md).
 
 ## Primary references
 

@@ -1,4 +1,5 @@
 export type RuleCode =
+  | 'PHONE_ALREADY_EXISTS'
   | 'NOT_FOUND'
   | 'DOCTOR_INACTIVE'
   | 'OUTSIDE_AVAILABILITY'

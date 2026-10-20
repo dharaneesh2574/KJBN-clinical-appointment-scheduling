@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
-import { acquireSchedulingLock } from '../src/appointments/infrastructure/scheduling-lock';
+import { acquireSchedulingLock } from '../src/common/infrastructure/scheduling-lock';
 import { PrismaSchedulingUnitOfWork } from '../src/appointments/infrastructure/prisma-scheduling-unit-of-work';
 import {
   SchedulingStores,

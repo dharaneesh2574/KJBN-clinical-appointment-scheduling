@@ -1,3 +1,10 @@
+import {
+  AppointmentsController,
+  SlotsController,
+} from './api/appointments.controller';
+import { ReadAppointments } from './application/read-appointments';
+import { AppointmentReader } from './domain/appointment-reader';
+import { AppointmentQueriesModule } from './infrastructure/appointment-queries.module';
 import { Module } from '@nestjs/common';
 import { Clock } from '../common/domain/clock';
 import { SchedulingUnitOfWork } from './domain/scheduling-store';
@@ -19,13 +26,22 @@ const useCases = [
 ];
 
 @Module({
-  imports: [SchedulingPersistenceModule],
-  providers: useCases.map((useCase) => ({
-    provide: useCase,
-    useFactory: (transactions: SchedulingUnitOfWork, clock: Clock) =>
-      new useCase(transactions, clock),
-    inject: [SchedulingUnitOfWork, Clock],
-  })),
+  imports: [SchedulingPersistenceModule, AppointmentQueriesModule],
+  controllers: [AppointmentsController, SlotsController],
+  providers: [
+    {
+      provide: ReadAppointments,
+      useFactory: (reader: AppointmentReader, clock: Clock) =>
+        new ReadAppointments(reader, clock),
+      inject: [AppointmentReader, Clock],
+    },
+    ...useCases.map((useCase) => ({
+      provide: useCase,
+      useFactory: (transactions: SchedulingUnitOfWork, clock: Clock) =>
+        new useCase(transactions, clock),
+      inject: [SchedulingUnitOfWork, Clock],
+    })),
+  ],
   exports: useCases,
 })
 export class AppointmentsModule {}

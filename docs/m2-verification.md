@@ -1,9 +1,12 @@
 # M2 business rules — verified 2026-10-20
 
 M0/M1 prerequisites were checked against the committed entities, schema, migration,
-seed, and their passing tests. M2 is implemented and verified, pending the user's
-manual commit. No commit hash has been assigned and no Git staging/push occurred.
-HTTP endpoints and the scheduling UI remain M3/M4 work.
+seed, and their passing tests. M2 was implemented and verified before the user's
+manual commit `ecdbbe0`. Original verification figures below are retained; root
+`coverage.txt` now tracks the latest milestone. No Git staging/push was performed
+by the assistant.
+This is the historical M2 exit record. M3 HTTP work is now verified separately in
+[M3 evidence](m3-verification.md); the scheduling UI remains M4.
 
 ## Implemented behavior
 
@@ -109,7 +112,7 @@ exercised by the separate real-PostgreSQL suite, whose coverage is not merged.
 See root `coverage.txt` for all four metrics. ESLint now rejects explicit `any`,
 floating promises and unsafe arguments rather than allowing/warning on them.
 
-## Remaining gates
+## Remaining gates at the M2 boundary (historical)
 
 M3: real endpoints, DTOs, safe error envelope, structured request logging,
 configuration-bound request clock, OpenAPI and API workflows. M4: real API UI.

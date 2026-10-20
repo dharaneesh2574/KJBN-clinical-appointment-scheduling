@@ -1,0 +1,60 @@
+{
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": "..",
+  "testRegex": "(src/.*\\.spec\\.ts$|test/.*\\.(spec|e2e-spec|integration-spec)\\.ts$)",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "collectCoverageFrom": [
+    "src/**/*.ts",
+    "!src/generated/**"
+  ],
+  "coverageDirectory": "coverage/all",
+  "testEnvironment": "node",
+  "coverageReporters": [
+    "text",
+    "json-summary",
+    "lcov"
+  ],
+  "coverageThreshold": {
+    "./src/appointments/domain/": {
+      "lines": 80,
+      "statements": 80,
+      "branches": 80,
+      "functions": 80
+    },
+    "./src/availability/domain/": {
+      "lines": 80,
+      "statements": 80,
+      "branches": 80,
+      "functions": 80
+    },
+    "./src/appointments/application/": {
+      "lines": 80,
+      "statements": 80
+    },
+    "./src/availability/application/": {
+      "lines": 80,
+      "statements": 80
+    },
+    "./src/doctors/application/": {
+      "lines": 80,
+      "statements": 80
+    },
+    "./src/patients/application/": {
+      "lines": 80,
+      "statements": 80
+    },
+    "global": {
+      "lines": 80,
+      "statements": 80,
+      "branches": 80,
+      "functions": 80
+    }
+  },
+  "testTimeout": 60000
+}

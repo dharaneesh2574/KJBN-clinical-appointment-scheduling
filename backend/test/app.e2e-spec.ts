@@ -1,3 +1,5 @@
+import { configureHttp } from '../src/common/http/configure-http';
+import { RequestLogger } from '../src/common/http/request-logger';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -13,6 +15,8 @@ describe('AppController (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
+      .overrideProvider(RequestLogger)
+      .useValue({ write: () => undefined })
       .overrideProvider(PrismaService)
       .useValue({})
       .overrideProvider(AppConfig)
@@ -24,6 +28,7 @@ describe('AppController (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+    configureHttp(app);
     await app.init();
   });
 

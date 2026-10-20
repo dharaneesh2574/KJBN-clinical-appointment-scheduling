@@ -5,7 +5,7 @@ import { createDoctor } from '../../doctors/domain/doctor';
 import { requireSlotMinutes } from '../../common/domain/validation';
 import { RuleError } from '../../common/domain/rule-error';
 
-function mapAppointment(
+export function mapAppointment(
   record: Prisma.AppointmentGetPayload<object>,
 ): Appointment {
   return createAppointment({
