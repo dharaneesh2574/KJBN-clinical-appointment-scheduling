@@ -2,8 +2,7 @@
 
 M2's policies, transaction gate and preceding tests were verified before exposing
 HTTP. Its implementation is committed as `ecdbbe0` (the user's actual manual
-commit; no history was rewritten). M3 is verified and pending the user's manual
-commit. No Git staging, commit, or push was performed by the assistant.
+commit; no history was rewritten). M3 is verified and committed manually as `f07683a`. No Git staging, commit, or push was performed by the assistant.
 
 ## API surface and boundaries
 
@@ -94,7 +93,8 @@ migration was edited and no db-push/dashboard DDL was used.
 Swagger UI: `/docs`; machine-readable OpenAPI 3 document: `/docs-json`. Request and
 response classes, enums, nested windows, pagination, errors, and reviewer header
 are described. The existing scaffold `/` remains a compatibility/liveness smoke
-route; it is not a database-readiness endpoint. UI integration remains M4.
+route; it is not a database-readiness endpoint. At the M3 boundary UI integration remained M4; see `m4-verification.md` for its
+subsequent implementation and browser gate.
 
 Verified commands from `backend/`:
 

@@ -1,0 +1,46 @@
+# Dedicated disposable M4 browser-test stack. Never points at clinic data.
+name: kjbn-clinic-ui-tests
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: kjbn_test
+      POSTGRES_PASSWORD: fictional_ui_test_only
+      POSTGRES_DB: kjbn_test_ui
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kjbn_test -d kjbn_test_ui"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  migrate:
+    build:
+      context: ./backend
+      target: tooling
+    environment:
+      DATABASE_URL: postgresql://kjbn_test:fictional_ui_test_only@db:5432/kjbn_test_ui
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npm", "run", "prisma:deploy"]
+  api:
+    build:
+      context: ./backend
+      target: runtime
+    environment:
+      DATABASE_URL: postgresql://kjbn_test:fictional_ui_test_only@db:5432/kjbn_test_ui
+      NODE_ENV: test
+      PORT: 3000
+      CORS_ORIGINS: http://127.0.0.1:4173
+      REVIEW_MODE: "true"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:3011:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

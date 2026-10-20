@@ -168,3 +168,30 @@ context. No unavailable prompts or tool results are invented.
   pass. A new DOB migration reconciles database bounds with reviewer-time policy;
   actual duplicate-phone tests verified Prisma constraint translation. UI remains
   M4. Existing user staging is preserved; no Git add/commit/push was performed.
+
+## 12. Suggest the M3 commit message
+
+- Date: 2026-10-20
+- Tool: OpenAI Codex desktop
+- Prompt (verbatim): `give a commit message for this milestone`
+- Use note: Supply a Conventional Commit subject/body; do not stage or commit.
+- Outcome: Suggested `feat(api): [M3] implement clinic scheduling API`; the user's
+  subsequent manual commit exists as `f07683a`.
+
+## 13. Implement M4 UI
+
+- Date: 2026-10-20
+- Tool: OpenAI Codex desktop
+- Prompt (verbatim): `proceed with milestone 4`
+- Use note: Build the required React flows against the M3 API, with explicit IST
+  display, explained patient flags, responsive layouts and failure states. Verify
+  real API browser workflows and preserve the user's manual Git workflow.
+- Outcome: Implemented live schedules/booking/rescheduling, patient registration/
+  lookup/history/flags/profile edits, today’s queue/statuses, doctor/hours controls,
+  IST display and request-local reviewer-time controls. Strict build/lint and all
+  18 Playwright cases pass against isolated real PostgreSQL/API; preceding 214
+  backend tests pass again. Browser checks exposed and corrected mobile grid width
+  and dialog focus restoration; earlier fixture/selector failures were corrected.
+  Production nginx/API navigation was inspected without mutating clinic records.
+  M3's actual manual commit is `f07683a`; M4 changes remain for manual commit.
+  User-staged lockfile removals are preserved and their install impact is documented.

@@ -5,3 +5,8 @@ dist
 !.env.example
 *.log
 .git
+
+playwright-report
+test-results
+e2e
+scripts

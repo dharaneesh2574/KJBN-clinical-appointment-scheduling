@@ -7,7 +7,9 @@ node_modules/
 .yarn/install-state.gz
 .pnp.*
 
-backend/package-lock.json
+# App package lockfiles (user preference)
+/backend/package-lock.json
+/frontend/package-lock.json
 
 # Build output, coverage, and tool caches
 dist/
@@ -53,3 +55,7 @@ Thumbs.db
 
 # Graphify
 graphify-out/
+
+# Browser test evidence (contains only fictional fixtures)
+/frontend/playwright-report/
+/frontend/test-results/

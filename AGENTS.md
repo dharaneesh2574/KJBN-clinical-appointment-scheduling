@@ -72,7 +72,8 @@ block subsequent work the user has authorized.
 
 ## Current repository baseline
 
-- `frontend/`: React + Vite scaffold, npm scripts, ESLint, TypeScript.
+- `frontend/`: React/Vite M4 UI with real API client, schedule/booking/history/queue/clinic
+  features, explicit IST display, strict TypeScript, ESLint and Playwright browser tests.
 - `backend/`: NestJS scaffold, Jest, ESLint/Prettier, Prisma 7 configuration.
 - `backend/src/prisma/`: shared Nest provider with PostgreSQL adapter and database
   connect/disconnect lifecycle. Feature modules import `PrismaModule`.
@@ -85,7 +86,8 @@ block subsequent work the user has authorized.
   74 executable R1–R7 acceptance tests, and 20 real-DB application tests (30 total
   integration tests). M3 now exposes the core API with DTOs/errors/logging/request
   clocks/OpenAPI: 113 unit/acceptance + 1 smoke + 100 real-DB tests (70 API cases).
-  See `docs/m3-verification.md`; UI/hosting remain pending.
+  M4 adds 18 passing real-API Playwright cases, responsive flows and doctor/hours
+  management. See `docs/m3-verification.md` and `docs/m4-verification.md`; hosting remains pending.
 
 Use the committed package manifests and lockfiles as the version authority. Keep
 the existing monorepo and npm setup. Do not re-scaffold or generate business logic.
@@ -310,7 +312,7 @@ Existing commands (run within the named app):
 
 | Location | Commands |
 | --- | --- |
-| `frontend/` | `npm ci`; `npm run dev`; `npm run lint`; `npm run build` |
+| `frontend/` | `npm ci`; `npm run dev`; `npm run lint`; `npm run build`; `npx playwright install chromium`; `npm run test:e2e` (Docker + isolated API/DB) |
 | `backend/` | `npm ci`; `npm run start:dev`; `npm run build`; `npm test -- --runInBand`; `npm run test:e2e -- --runInBand`; `npm run test:cov -- --runInBand` |
 | `backend/` Prisma | `npm run prisma:validate`; `npm run prisma:generate`; `npm run prisma:migrate -- --name <change>`; `npm run prisma:deploy` |
 
@@ -337,8 +339,8 @@ evidence in SUBMISSION.md. Never invent history or retroactively relabel old com
 | M0 — Scaffold | Existing React/NestJS structure; linters/formatters; env examples for both apps; README skeleton naming Problem 2; verified setup. | Complete 2026-10-19, `c9a3346`: both builds/linters, initialized config, env examples, README skeleton, mocked HTTP test. |
 | M1 — Domain model | Entities; schema and reproducible migrations; realistic repeatable seed; R1–R7 test cases written (may initially fail); numbered ambiguity decisions. | Verified 2026-10-19: 25 unit + 10 real-DB tests; 35 explicit M2 TODOs; `7e795de`. |
 | M2 — Business rules | Testable use cases/policies; all core rules pass; atomic rescheduling and real PostgreSQL concurrency evidence; boundary tests. HTTP not required yet. | Verified 2026-10-20: 99 unit/acceptance + 1 HTTP smoke + 30 real-DB tests; 96.76% business-code line coverage. `ecdbbe0` (actual manual commit); see `docs/m2-verification.md`. |
-| M3 — API | Core endpoints; DTO validation; consistent errors; structured request logging; request clock; OpenAPI; passing API tests. | Verified 2026-10-20: 214 tests including 70 real-DB API cases; combined lines 97.48% overall / 97.91% business. Pending user manual commit; see `docs/m3-verification.md`. |
-| M4 — UI | All required flows call the local API; IST display; loading/error/empty states; flags explained; usable at laptop and phone widths. | Not started |
+| M3 — API | Core endpoints; DTO validation; consistent errors; structured request logging; request clock; OpenAPI; passing API tests. | Verified 2026-10-20: 214 tests including 70 real-DB API cases; combined lines 97.48% overall / 97.91% business. `f07683a` (actual manual commit); see `docs/m3-verification.md`. |
+| M4 — UI | All required flows call the local API; IST display; loading/error/empty states; flags explained; usable at laptop and phone widths. | Verified 2026-10-20: 18 real-API Playwright cases; 375/320px phone and 1440px desktop; strict build/lint and preceding 214 backend tests pass. Pending user manual commit; see `docs/m4-verification.md`. |
 | M5 — Deployment | Service Dockerfiles/build specs; one-command local backend + DB + UI; provider config; migrate-and-seed script; live seeded UI/API; CORS; health endpoint; CI tests. | User requested container subset early: Dockerfiles/root Compose/CORS/migrate-seed path verified 2026-10-19; frontend/backend/DB healthy, proxy and seed checked. Hosted deployment/readiness/CI pending. |
 | M6 — Documentation | Exact README/SUBMISSION formats; prompt log and disclosure; committed coverage summary; clean-clone/hosted edge-case verification; final `v1.0` tag. | Not started |
 

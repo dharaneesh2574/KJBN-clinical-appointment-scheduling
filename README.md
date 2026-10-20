@@ -1,17 +1,17 @@
 # 1. Title and one-liner
 
 **KJBN Clinic Appointment Scheduler — Problem 2.** Scheduling for a two-doctor
-clinic using React, NestJS, PostgreSQL, and Prisma. M3 exposes the verified rules
-through a validated, documented JSON API;
-the integrated scheduling UI remains M4.
+clinic using React, NestJS, PostgreSQL, and Prisma. The M4 UI supports schedules,
+booking/rescheduling, patient history, today’s queue and clinic settings through
+the verified M3 JSON API.
 
 ## 2. Live links
 
 No public deployment yet. Local container UI: http://localhost:8080; Vite UI:
 http://localhost:5173; API: http://localhost:3000;
 [Swagger UI](http://localhost:3000/docs) and [OpenAPI JSON](http://localhost:3000/docs-json).
-The UI is still the starter; API integration is M4. Rebuild/restart the backend after
-source changes. Hosted URLs and cold-start measurements remain M5.
+The M4 UI calls the real API. Rebuild changed services after source edits; hosted
+URLs and cold-start measurements remain M5.
 
 ## 3. Tech stack
 
@@ -44,6 +44,12 @@ All scheduling/directory writes share the PostgreSQL transaction lock; paged que
 adapters use coherent snapshots. Prisma retains connection lifecycle. Configuration
 is validated once; domain code has no HTTP, NestJS, Prisma or env dependency.
 See [M2 design](docs/m2-verification.md) and [M3 verification](docs/m3-verification.md).
+
+The React UI separates feature views (`schedule`, `patients`, `clinic`) from its
+explicit API client/response decoders and shared async-state/IST/dialog components.
+It uses API-returned slots, derived deposit eligibility and actual mutation results;
+failed writes preserve recoverable form inputs. There is no final-build mock data.
+See [M4 verification](docs/m4-verification.md) for the workflow and browser evidence.
 
 ## 5. Running locally
 
@@ -107,7 +113,8 @@ Backend variables: `DATABASE_URL` (required PostgreSQL URL), `PORT` (default 300
 `NODE_ENV` (development/test/production), `CORS_ORIGINS` (comma-separated explicit
 HTTP(S) origins), `REVIEW_MODE` (true/false, default false). Clinic timezone is
 Asia/Kolkata. Frontend `VITE_API_BASE_URL` is public build-time configuration;
-UI integration is pending M4; the backend API is implemented in M3. Never put secrets in Vite variables. Process
+containers use `/api` through nginx, and Vite also proxies `/api` to local port
+3000 when no origin is set. Never put secrets in Vite variables. Process
 variables take precedence over `.env`; invalid configuration prevents startup
 without logging credentials. Run backend commands from `backend/`.
 
@@ -149,14 +156,14 @@ npm run test:all
 npm run test:cov:all
 ```
 
-`test:all` runs all current suites: **113 unit/acceptance + 1 HTTP smoke + 100
+`test:all` runs all current backend suites: **113 unit/acceptance + 1 HTTP smoke + 100
 real-PostgreSQL tests**, including **70 API workflow/validation/error/clock/logging/
 OpenAPI cases** and 30 M1/M2 database tests. `test:rules` runs the 74 R1–R7
 acceptance cases. The real API suite uses the production HTTP setup and actual
 Prisma transactions; it does not replace the rule/DB gate with mocks. No suite
 uses a public hosted service.
 
-One full gate from the root without native PostgreSQL:
+One full backend gate from the root without native PostgreSQL:
 
 ```sh
 docker compose --env-file .env.example --profile test run --build --rm integration npm run test:all
@@ -187,7 +194,23 @@ metrics and scope, and [M3 evidence](docs/m3-verification.md).
 113 tests, 39.34% overall lines and 97.21% business-code lines. This narrower view
 does not instrument API/DB suites and is not the combined overall result. Reports
 are ignored under `coverage/`; the sanitized root summary is reviewable.
-Frontend checks remain `npm run lint` and `npm run build` from `frontend/`.
+Frontend verification (from `frontend/`, with Docker Compose v2):
+
+```sh
+npm run lint
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+The frontend build checks strict application and test TypeScript. The **18-case
+Playwright gate** creates an isolated PostgreSQL/API stack, applies migrations,
+uses real HTTP fixtures and runs the UI at 127.0.0.1:4173 against test API port
+3011, then tears down only that test stack. These ports must be free. An existing
+Chrome binary can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`; otherwise
+install Chromium with the command above. Reports/traces/screenshots are ignored.
+The 214 backend and 18 frontend cases pass; these remain separate commands.
+See [M4 evidence](docs/m4-verification.md).
 
 ## 7. API overview
 
@@ -246,7 +269,8 @@ Tests: `backend/test/rules.acceptance.spec.ts` and
 `backend/test/scheduling.integration-spec.ts`; M1 schema evidence remains in
 `backend/test/domain.integration-spec.ts`. M3 HTTP evidence is in
 `backend/test/api.integration-spec.ts`; see [M2](docs/m2-verification.md) and
-[M3 verification](docs/m3-verification.md).
+[M3 verification](docs/m3-verification.md). M4 UI evidence is in
+`frontend/e2e/clinic.spec.ts` and [M4 verification](docs/m4-verification.md).
 
 The following are documented project assumptions, not extra source requirements:
 
@@ -306,6 +330,10 @@ The following are documented project assumptions, not extra source requirements:
 15. **DOB and review time:** application validation uses the request snapshot.
     PostgreSQL keeps structural DOB date bounds; the M3 migration replaces M1's
     database-wall-clock future check so it cannot contradict reviewer time.
+16. **UI snapshots:** the day grid combines API-returned slots and occupied
+    appointments; cancelled rows remain separately visible. Refresh on writes and
+    explicit request; the backend rechecks all rules. UI dates are always IST,
+    reviewer settings/data stay in memory, and writes have no automatic retry.
 
 ## 9. Error handling and logging
 
@@ -337,6 +365,14 @@ Responses use `Cache-Control: no-store`; CORS uses explicit configured origins.
 
 ## 10. Reviewer aids
 
+In the UI, use **Schedule** for per-doctor slots, **Patients** for phone/history,
+**Today’s queue** for lifecycle updates, and **Clinic settings** for doctors/hours.
+Select a free slot or Book appointment, find/register a patient, enter a reason,
+and acknowledge the deposit when required. Open a booked slot to cancel or
+reschedule; invalid replacements retain the original. All displayed times are IST.
+
+The footer’s **Reviewer clock** panel sends an explicit-offset timestamp on every
+API request and reloads clock-dependent UI state. **Use real time** clears it.
 Normal mode rejects `X-Review-Now` with 403. Enable review mode explicitly:
 
 ```sh
@@ -378,8 +414,9 @@ history untouched. `/docs` provides executable request schemas for all operation
 
 ## 11. Known limitations
 
-The frontend remains a starter and does not yet implement scheduling workflows
-(M4). Public hosting, CI, dedicated database readiness, hosted edge-case checks,
+M4 is verified locally in Chrome, including phone widths; other browser/device
+coverage and a full accessibility audit remain unverified. Public hosting, CI,
+dedicated database readiness, hosted edge-case checks,
 clean-clone final verification and submission tagging remain M5/M6. Authentication
 is optional and not implemented. No stretch features have started.
 
@@ -388,14 +425,21 @@ Schedule edits conservatively protect historical occupied rows; use future date
 overrides when weekly edits would invalidate immutable history. The retained `/`
 smoke route is liveness only. Review-mode time is intentional request-local testing;
 normal-mode DOB/horizon decisions use real request arrival time. Status and evidence
-are recorded in `AGENTS.md`, `SUBMISSION.md`, and `docs/m3-verification.md`.
+are recorded in `AGENTS.md`, `SUBMISSION.md`, and the M3/M4 verification notes.
+
+The user has staged removal of both npm lockfiles while keeping local copies.
+Current `npm ci` and Docker builds require those files. Reconcile that Git choice
+before claiming a runnable clean clone; M4 checks used the on-disk lockfiles.
 
 ## 12. AI and third-party usage
 
 OpenAI Codex assisted with scaffolding, configuration, domain modeling, business
-policies, API implementation/tests, documentation and local containers. React/Vite
-and NestJS starter templates were retained. M3 adds compatible Nest Swagger 11,
+policies, API/UI implementation/tests, documentation and local containers. React/Vite
+and NestJS scaffolds remain; M4 replaces the visible frontend starter. M3 adds compatible Nest Swagger 11,
 class-validator and class-transformer; versions are governed by manifests/lockfiles.
 Official Nest documentation informed validation, request scopes and OpenAPI setup;
 references and design costs are in [M3 evidence](docs/m3-verification.md).
+M4 adds Playwright with real-API browser fixtures; the UI uses native controls and
+CSS/SVG, without an external design template, icon package or image-generation
+service. Official React/Playwright references are in [M4 evidence](docs/m4-verification.md).
 See [PROMPTS.md](PROMPTS.md) for chronological requests and use notes.
