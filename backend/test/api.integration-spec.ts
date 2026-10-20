@@ -920,6 +920,16 @@ describe('M3 — request clocks, logging, safe failures and OpenAPI', () => {
     });
     expect(JSON.stringify(logs)).not.toContain(secret);
   });
+  test('readiness probes the real database and liveness answers separately', async () => {
+    await request(app.getHttpServer())
+      .get('/health/ready')
+      .expect(200)
+      .expect({ status: 'ready' });
+    await request(app.getHttpServer())
+      .get('/health/live')
+      .expect(200)
+      .expect({ status: 'ok' });
+  });
   test('document all core operations, validation fields, response schemas and reviewer header', async () => {
     const response = body(
       await request(app.getHttpServer()).get('/docs-json').expect(200),
@@ -927,6 +937,8 @@ describe('M3 — request clocks, logging, safe failures and OpenAPI', () => {
     expect(response.openapi).toBe('3.0.0');
     const paths = object(response.paths);
     for (const path of [
+      '/health/live',
+      '/health/ready',
       '/doctors',
       '/doctors/{id}',
       '/patients',

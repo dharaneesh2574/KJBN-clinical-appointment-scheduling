@@ -1,8 +1,8 @@
 # M4 UI — verified 2026-10-20
 
 M3's actual manual commit is `f07683a`; its API/business-rule gate was re-run before
-completing M4. M4 is verified in the working tree and pending the user's manual
-commit. The assistant did not stage, commit or push changes. Pre-existing user
+completing M4. The user's M4 manual commit is `9197ec5`; the follow-up fix below is
+verified and pending manual commit. The assistant did not stage, commit or push changes. Pre-existing user
 staging, including lockfile removals, was preserved.
 
 ## Implemented product flows
@@ -127,6 +127,28 @@ real responses. Outage/loading cases deliberately abort or hold a network reques
 they do not supply fabricated business data or substitute final-build API behavior.
 Early harness failures (hidden event counts, worker restart fixture collisions and
 label selectors) were corrected as well; final success is from a complete run.
+
+## Follow-up: saving existing weekly hours (2026-10-20)
+
+The user reported a failed PUT for doctor `10000000-0000-4000-8000-000000000002`,
+weekly day `1`. Backend logs identify 400 `VALIDATION_FAILED`. The UI's loaded
+weekly windows retained response-only `weekday`; serializing those objects sent
+it inside each window, although the write DTO accepts only `startMinute` and
+`endMinute` (weekday is already in the URL). Numeric minute values were valid.
+
+A real browser regression first failed with the captured body
+`{"windows":[{"startMinute":480,"endMinute":720,"weekday":1}]}` and HTTP 400.
+The API client now explicitly projects the allowed window fields for weekly and
+override writes. Strict backend validation remains in force. The regression then
+returned 204 with `{"windows":[{"startMinute":480,"endMinute":720}]}`.
+The initial 18-case suite covered new windows but missed this loaded-window save.
+
+Verification: targeted regression passes; full isolated real-API/PostgreSQL
+browser suite **19/19 passes**; strict frontend build and lint pass. Rebuilt only
+the local frontend container and confirmed port 8080 serves the new bundle.
+Normal clinic hours and appointments were not changed during verification.
+The existing graph was used for navigation; it has not been refreshed for this
+small follow-up, so source and test evidence above take precedence.
 
 ## Limits and remaining gates
 

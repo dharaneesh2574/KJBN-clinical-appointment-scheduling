@@ -147,7 +147,7 @@ export function AppointmentDialog({
                     disabled={busy}
                     onClick={() => onReschedule(data.visit)}
                   >
-                    Reschedule
+                    Move appointment
                   </button>
                   <button
                     className="button secondary danger-text"

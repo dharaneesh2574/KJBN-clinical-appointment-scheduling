@@ -80,3 +80,10 @@ application validation uses the same request snapshot. See [M3 evidence](m3-veri
 
 - [Prisma 7 migration workflow](https://www.prisma.io/docs/orm/v7/prisma-migrate/getting-started)
 - [PostgreSQL range exclusion constraints](https://www.postgresql.org/docs/17/rangetypes.html#RANGETYPES-CONSTRAINT)
+
+M5 re-seed correction: availability is initialized only when its seed doctor is
+first created. Existing doctors retain all weekly windows, intentionally closed
+days, leave windows and deleted overrides, including replacement row IDs. An
+edit-and-reseed PostgreSQL regression failed before this correction and passes
+afterward. Other missing catalog entities remain additive; schedule conflicts
+still roll the complete seed transaction back.

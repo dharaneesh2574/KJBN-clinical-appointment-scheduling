@@ -9,7 +9,12 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor(config: AppConfig) {
-    super({ adapter: new PrismaPg({ connectionString: config.databaseUrl }) });
+    super({
+      adapter: new PrismaPg({
+        connectionString: config.databaseUrl,
+        connectionTimeoutMillis: 2000,
+      }),
+    });
   }
 
   async onModuleInit() {

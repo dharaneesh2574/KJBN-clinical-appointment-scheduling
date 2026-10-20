@@ -101,12 +101,14 @@ export function Modal({
   children,
   onClose,
   busy = false,
+  variant = "dialog",
 }: {
   title: string;
   description?: string;
   children: ReactNode;
   onClose: () => void;
   busy?: boolean;
+  variant?: "dialog" | "drawer" | "booking";
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -127,7 +129,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      className="modal"
+      className={`modal ${variant === "drawer" ? "booking-drawer" : variant === "booking" ? "booking-modal" : ""}`}
       aria-labelledby="modal-title"
       aria-describedby={description ? "modal-description" : undefined}
       onCancel={(event) => {

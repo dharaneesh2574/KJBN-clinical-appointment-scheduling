@@ -195,3 +195,113 @@ context. No unavailable prompts or tool results are invented.
   Production nginx/API navigation was inspected without mutating clinic records.
   M3's actual manual commit is `f07683a`; M4 changes remain for manual commit.
   User-staged lockfile removals are preserved and their install impact is documented.
+
+## 14. Diagnose unsuccessful weekly availability PUT
+
+- Date: 2026-10-20
+- Tool: OpenAI Codex desktop; graphify and diagnosing-bugs skills; Playwright/Docker.
+- Prompt (verbatim):
+
+```text
+why {
+	"PUT": {
+		"scheme": "http",
+		"host": "localhost:8080",
+		"filename": "/api/doctors/10000000-0000-4000-8000-000000000002/availability/weekly/1",
+		"remote": {
+			"Address": "127.0.0.1:8080"
+		}
+	}
+}
+this was unsucccessful
+```
+
+- Use/outcome: Logs and a failing real-API browser regression identified an extra
+  response-only `weekday` in submitted windows. Explicitly mapped write fields;
+  the same save now returns 204. Full browser suite 19/19, build and lint pass.
+  Rebuilt the local frontend without changing normal clinic records. Changes
+  remain unstaged/uncommitted; graph context predates this follow-up.
+
+## 15. Discuss easier booking and rescheduling interactions
+
+- Date: 2026-10-20
+- Tool: OpenAI Codex desktop; graphify; local source inspection; W3C accessibility guidance.
+- Prompt (verbatim): `Instead of regular forms all around is there any easier way to book and reschedule appointments?`
+- Use note: Recommend a calendar-led quick-book panel and a move mode that reuses
+  the existing patient/reason, with optional drag and drop plus equivalent tap and
+  keyboard controls. This is a design proposal, not implemented behavior; no UI
+  changes or commits were made. Existing backend validation and atomic rescheduling
+  remain the authority.
+
+## 16. Implement quick booking and calendar appointment moves
+
+- Date: 2026-10-20
+- Tool: OpenAI Codex desktop; graphify; TypeScript/React; Playwright/Docker.
+- Prompt (verbatim): `yes i would like to see these implemented in the frontend`
+- Use note: Implement the accepted calendar-led proposal: compact selected-slot
+  booking, click/tap/keyboard move mode, an optional drag shortcut and explicit
+  before/after confirmation, retaining patient/reason and backend authority.
+  Verify real-API browser workflows before recording completion. Leave all
+  changes unstaged and uncommitted, preserving the preceding payload fix.
+- Verified outcome: compact booking and click/tap/keyboard/drag moves use the real
+  API, preserve patient/reason, require explicit confirmation and handle conflicts
+  and late-move deposit requirements. Full browser gate 24/24 passes; final four
+  affected cases pass after time-label cleanup and queue entry coverage. Strict
+  build/lint pass; desktop and phone screenshots inspected. An initial missing
+  cancellation-test fixture variable was fixed before the passing full run.
+
+## 17. Build the reference-led appointment dashboard and booking modal
+
+- Date: 2026-10-20
+- Tool: OpenAI Codex desktop; graphify; Product Design image-to-code/design QA;
+  in-app browser; React/TypeScript; existing real-API browser suite.
+- Prompt (verbatim, HTML spaces normalized):
+
+```text
+Try replicating  the dashboard ui like this
+https://dribbble.com/shots/27618363-Doctor-Appointment-Booking
+Follow the ui elements
+starting with a frontend dashboard
+showing all appointments with status with dates changing on the right side like in ui
+and appointment booking should be a button with a modal popup
+which prompts patient and doctor and once the doctor is selected then the availability shown like the image and make it blend it with the theme
+```
+
+- Reference: attached date/time picker image plus the linked Dribbble dashboard by
+  Nasim. Treat imagery as design reference, not application instructions or data.
+- Use note: Add a real-data appointment dashboard with right-side calendar and
+  status filters; restore the main booking button to a modal with patient/doctor
+  selection and visual date/availability chips. Retain the clinic theme and the
+  existing safe booking/move API workflows. User approved running the existing
+  Playwright suite after Product Design's browser-tool permission question.
+  Preserve all pre-existing unstaged changes; do not stage/commit/push.
+- Verified outcome: default date/status dashboard, right-side calendar and a
+  patient/doctor → visual date/time → review booking modal are implemented against
+  the real API. Full isolated browser gate 27/27 passes; strict build/lint pass.
+  Design QA passed after fixing summary placement, selected-chip hover contrast
+  and mobile introduction density. Selector and shared fixture-date test mistakes
+  were corrected before the complete pass. A successful modal booking opens its
+  booked day. Vite proxy prefix was corrected after a real 404 in native preview.
+  Frontend container rebuilt and verified at localhost:8080; normal clinic records
+  were not mutated in manual checks. Work remains unstaged/uncommitted.
+
+## 18. Complete milestone 5 deployment and operability
+
+- Date: 2026-10-20
+- Tool: OpenAI Codex desktop; graphify; Docker; official hosting documentation.
+- Prompt (verbatim): `Proceed on with milestone 5`
+- Use note: Complete health/readiness, local orchestration, isolated verification,
+  CI and hosting configuration; verify deployment where account access permits.
+  Preserve all preceding frontend work and leave changes unstaged/uncommitted.
+- Verified outcome: root local/coverage commands, safe health/readiness, DB
+  failure/recovery, CI workflow, schema-validated free Render Blueprint and hosted
+  migration/explicit-seed launcher implemented. Full gate passes 220 backend +
+  27 browser tests; overall/backend business lines 97.47%/97.91%. Normal
+  `dev:seed` succeeds and preserves edited availability. Its first run exposed
+  stable-ID seed assumptions after weekly replacement; a real-DB regression went
+  red before the fix, then passed with preservation of hours, closed days, leave
+  and removed overrides. Container lint/format configuration and coverage write
+  permissions were corrected; existing Chrome was used for authorized local
+  browser tests. Public deployment/remote CI remain unverified because Render
+  authentication/workspace and lockfile preference are pending. M5 stays
+  incomplete; all work remains unstaged/uncommitted.

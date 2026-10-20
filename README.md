@@ -17,7 +17,8 @@ URLs and cold-start measurements remain M5.
 
 TypeScript, React 19/Vite, NestJS 11, Prisma ORM 7, PostgreSQL, npm lockfiles.
 Use Node.js 24 LTS and npm. PostgreSQL stores instants with timezone and local
-calendar concepts separately. Hosting has not been selected.
+calendar concepts separately. A free Render Blueprint is prepared; public
+deployment/account access remain pending.
 
 ## 4. Architecture
 
@@ -50,6 +51,14 @@ explicit API client/response decoders and shared async-state/IST/dialog componen
 It uses API-returned slots, derived deposit eligibility and actual mutation results;
 failed writes preserve recoverable form inputs. There is no final-build mock data.
 See [M4 verification](docs/m4-verification.md) for the workflow and browser evidence.
+The [calendar interaction follow-up](docs/calendar-interactions.md) adds compact
+selected-slot booking, Move mode across days/doctors and a drag shortcut with
+explicit confirmation. Patient/reason carry forward; deposit controls appear
+only when required. Mobile and keyboard users can select destinations directly.
+The [dashboard follow-up](docs/dashboard-verification.md) adds the default real-data
+appointment list with a right-side date calendar, status/doctor/search filters and
+Book appointment modal. Select the patient and doctor, choose visual date/time
+chips, then confirm; success opens the booked day. Schedule retains grid/move flows.
 
 ## 5. Running locally
 
@@ -58,12 +67,15 @@ Prerequisites: Node.js 24 LTS, npm, PostgreSQL, and (for containers) Docker Comp
 ### Containers (from the project root)
 
 ```sh
-cp .env.example .env
-# Set your local PostgreSQL password and optional host ports in .env.
-docker compose up --build -d
-# Seed is explicit; normal startup only migrates.
-./scripts/migrate-and-seed.sh
+npm run dev:seed
+# Subsequent startup without seeding:
+npm run dev
 ```
+
+The root command creates `.env` from the fictional local example only if absent,
+then builds, migrates and waits for readiness. Configure the existing file for
+custom ports/credentials; it is never overwritten. `dev:seed` explicitly ensures
+the additive seed. The separate `./scripts/migrate-and-seed.sh` remains available.
 
 The UI runs at http://localhost:8080 and proxies `/api/` to the backend; the backend
 is also available at http://localhost:3000. PostgreSQL stays on the private Compose
@@ -80,7 +92,7 @@ Images are tagged `dharaneesh2574/kjbn-frontend:latest`,
 tooling image holds the Prisma CLI/seed/tests; the non-root backend runtime holds
 only production dependencies and compiled code. Frontend nginx also runs without
 root. The migration job waits for healthy PostgreSQL; backend startup waits for
-successful migration; frontend startup waits for the backend HTTP check.
+successful migration; frontend startup waits for database-backed API readiness.
 
 `docker compose down` stops the stack and keeps the database volume. Rebuild after
 code changes with `docker compose up --build -d`. Do not delete volumes to perform
@@ -127,13 +139,27 @@ The suite applies migrations and removes only its own test fixtures.
 
 ## 5a. Deployment
 
-No hosting provider or public deployment yet. Local Docker verification is a
-subset of M5 explicitly requested early; hosted deployment, dedicated readiness,
-and CI remain pending. `docker-compose.yml`, service Dockerfiles, and
-`scripts/migrate-and-seed.sh` are the local build/migrate/seed path. Re-seeding is
-explicit and preserves catalog edits. Prisma generation runs after install and
-before build. OpenSSL and Prisma engine preparation are included in the tooling
-image for reliable migration execution. PostgreSQL must support `btree_gist`.
+Public deployment is pending account access. [Render configuration](render.yaml)
+prepares a free Node API, static UI and PostgreSQL 17 database; the
+[deployment runbook](docs/deployment.md) contains exact dashboard/env/CORS steps,
+redeploy/re-seed instructions and failure recovery. The CLI currently reports
+`unauthorized`; no public URL, hosted test pass or remote CI run is claimed.
+
+`npm run dev:seed` provides one-command local startup. Hosted startup applies
+committed Prisma migrations, explicitly ensures the fictional seed when
+`SEED_DEMO_DATA=true`, and stops on any failed step before serving. It never uses
+`db push` or resets the database. Normal Docker startup migrates without seeding;
+`./scripts/migrate-and-seed.sh` is the separate explicit seed path. Re-seeding
+preserves catalog edits/history. PostgreSQL must support `btree_gist`.
+
+`/health/live` checks the process; `/health/ready` performs a bounded read of the
+migrated schema and returns safe 503 `DATABASE_UNAVAILABLE` on failure. Compose and
+Render use readiness. CI runs the same full local coverage gate on isolated
+PostgreSQL with no hosted secrets. See [M5 evidence](docs/m5-verification.md).
+Render terms checked 2026-10-20: free API sleeps after 15 idle minutes (resume can
+take about a minute); free PostgreSQL expires after 30 days with no backups.
+Confirm expiry covers review before deployment. These are provider terms, not
+measured application cold-start results. [Official limits](https://render.com/docs/free).
 
 The app images are built/tagged locally, not published to Docker Hub. Publishing
 can be performed separately after `docker login` with
@@ -142,7 +168,20 @@ Do not use the local example credentials for a hosted deployment.
 
 ## 6. Running tests and coverage
 
-Run from `backend/`:
+After frontend installation and Chromium setup below, run from the root:
+
+```sh
+npm test
+npm run coverage
+```
+
+These commands build/lint and run every required backend, real-PostgreSQL,
+operational readiness and browser suite against explicitly disposable projects.
+`coverage` retains `backend/coverage/all/` and enforces the combined thresholds.
+No native PostgreSQL or public hosted service is needed. The CI workflow executes
+this same command. See [deployment runbook](docs/deployment.md).
+
+Individual backend commands (from `backend/`):
 
 ```sh
 npm run build
@@ -156,9 +195,9 @@ npm run test:all
 npm run test:cov:all
 ```
 
-`test:all` runs all current backend suites: **113 unit/acceptance + 1 HTTP smoke + 100
-real-PostgreSQL tests**, including **70 API workflow/validation/error/clock/logging/
-OpenAPI cases** and 30 M1/M2 database tests. `test:rules` runs the 74 R1–R7
+`test:all` runs all current backend suites: **113 unit/acceptance + 4 HTTP smoke/health + 103
+real-PostgreSQL tests**, including **71 API workflow/validation/error/clock/logging/
+OpenAPI cases** and 32 schema/seed/concurrency database tests. `test:rules` runs the 74 R1–R7
 acceptance cases. The real API suite uses the production HTTP setup and actual
 Prisma transactions; it does not replace the rule/DB gate with mocks. No suite
 uses a public hosted service.
@@ -183,15 +222,17 @@ volume. Migrations replay on a fresh test database; fixture cleanup and repeat-s
 checks touch only the isolated database. Stop it afterward with
 `docker compose --env-file .env.example stop test-db`.
 
-Combined coverage is **97.48% overall backend lines** and **97.91% business-code
-lines**, including API and real-DB execution. Generated Prisma source alone is
-excluded; bootstrap, module wiring, DTOs, HTTP infrastructure and adapters remain
+Combined coverage is **97.47% overall backend lines** and **97.91% business-code
+lines**, including API and real-DB execution. Scope is `backend/src/**/*.ts`;
+tests, Prisma seed/config and orchestration scripts are outside that runtime-source
+denominator. Generated Prisma source alone is excluded within `src/`; bootstrap,
+module wiring, DTOs, HTTP infrastructure and adapters remain
 in the overall denominator. The combined command enforces 80% global metrics plus
 specific business-module thresholds. See [coverage.txt](coverage.txt) for all four
-metrics and scope, and [M3 evidence](docs/m3-verification.md).
+metrics and scope, and [M5 evidence](docs/m5-verification.md).
 
-`npm run test:cov -- --runInBand` retains the database-free unit/acceptance view:
-113 tests, 39.34% overall lines and 97.21% business-code lines. This narrower view
+The historical M3 database-free unit/acceptance measurement was 113 tests,
+39.34% overall lines and 97.21% business-code lines (before health code). This narrower view
 does not instrument API/DB suites and is not the combined overall result. Reports
 are ignored under `coverage/`; the sanitized root summary is reviewable.
 Frontend verification (from `frontend/`, with Docker Compose v2):
@@ -203,13 +244,14 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The frontend build checks strict application and test TypeScript. The **18-case
+The frontend build checks strict application and test TypeScript. The **27-case
 Playwright gate** creates an isolated PostgreSQL/API stack, applies migrations,
 uses real HTTP fixtures and runs the UI at 127.0.0.1:4173 against test API port
 3011, then tears down only that test stack. These ports must be free. An existing
 Chrome binary can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`; otherwise
 install Chromium with the command above. Reports/traces/screenshots are ignored.
-The 214 backend and 18 frontend cases pass; these remain separate commands.
+M4 passed 214 backend cases and 27 browser cases; M5 adds four backend health
+cases. The root gate now combines these suites and operational checks.
 See [M4 evidence](docs/m4-verification.md).
 
 ## 7. API overview
@@ -221,6 +263,8 @@ to the backend root; nginx proxies `/api/` to that root.
 
 | Method | Path | Purpose | Main errors |
 | --- | --- | --- | --- |
+| GET | `/health/live` | Process liveness | — |
+| GET | `/health/ready` | Database and migrated-schema readiness | 503 |
 | GET | `/doctors` | Paged list; optional `active` filter | 400 |
 | POST | `/doctors` | Create doctor | 400, 409 |
 | GET / PUT | `/doctors/:id` | Read / replace settings (PUT 204) | 400, 404, 409 |
@@ -310,7 +354,10 @@ The following are documented project assumptions, not extra source requirements:
     M2 updates status/history/reschedule rows and checks capacity in one transaction.
 11. **Seed:** stable fictional data uses reference `2026-10-19T03:00:00Z` (08:30 IST).
     Re-seeding inserts missing catalog rows and preserves existing data/edits;
-    it never truncates tables. Use a fresh database for the exact initial fixture.
+    availability is bootstrapped only when a seed doctor is first created. Existing
+    weekly hours, closed weekdays, leave windows and removed overrides are retained,
+    even when replacement row IDs differ. It never truncates tables. Use a fresh
+    database for the exact initial fixture.
 
 12. **Concurrency:** one transaction-scoped PostgreSQL advisory lock serializes all
     scheduling writers, including availability/settings edits and explicit seed
@@ -360,7 +407,9 @@ UUID resource IDs. Rule/input failures use warn; unexpected failures use error.
 The filter does not duplicate the request error log. Bodies, query strings, raw
 URLs, names, phones, DOBs, exception text, credentials and connection strings are
 excluded. Logs do not use reviewer time. Startup emits sanitized structured status.
-View local logs with `docker compose logs -f backend`; hosted log access remains M5.
+View local logs with `docker compose logs -f backend`; hosted backend logs will be
+in Render’s service Logs view after deployment. Readiness failures return safe
+503 `DATABASE_UNAVAILABLE` and use the same correlated completion log.
 Responses use `Cache-Control: no-store`; CORS uses explicit configured origins.
 
 ## 10. Reviewer aids
@@ -388,7 +437,8 @@ uses its own immutable snapshot. Missing timezone offsets or invalid dates retur
 
 Seed reference: **2026-10-19 08:30 IST** (`2026-10-19T03:00:00Z`). Explicitly run
 `npm run prisma:seed` or the documented root seed helper when needed; imports
-preserve existing edits or roll back on conflict. No normal startup seeds/wipes data.
+preserve existing edits or roll back on conflict. Normal local startup only migrates;
+the hosted demo launcher seeds only when explicitly configured with `SEED_DEMO_DATA=true`.
 Phone `+12025550103` has two recent penalties; `+12025550102` has one. A fresh
 isolated database gives the exact initial catalog; see [domain notes](docs/domain-model.md).
 
@@ -415,9 +465,10 @@ history untouched. `/docs` provides executable request schemas for all operation
 ## 11. Known limitations
 
 M4 is verified locally in Chrome, including phone widths; other browser/device
-coverage and a full accessibility audit remain unverified. Public hosting, CI,
-dedicated database readiness, hosted edge-case checks,
-clean-clone final verification and submission tagging remain M5/M6. Authentication
+coverage and a full accessibility audit remain unverified. Public hosting, first
+remote CI execution, hosted edge-case checks, clean-clone final verification and
+submission tagging remain M5/M6. CI configuration and local database readiness
+are implemented; hosting authentication and lockfile reconciliation are pending. Authentication
 is optional and not implemented. No stretch features have started.
 
 The clinic-wide write lock favors understandable correctness over throughput.
@@ -427,14 +478,16 @@ smoke route is liveness only. Review-mode time is intentional request-local test
 normal-mode DOB/horizon decisions use real request arrival time. Status and evidence
 are recorded in `AGENTS.md`, `SUBMISSION.md`, and the M3/M4 verification notes.
 
-The user has staged removal of both npm lockfiles while keeping local copies.
-Current `npm ci` and Docker builds require those files. Reconcile that Git choice
-before claiming a runnable clean clone; M4 checks used the on-disk lockfiles.
+Both application npm lockfiles are intentionally ignored while local copies
+exist. Current `npm ci`, Docker, CI and hosting builds require them. A request to
+restore their trackability is pending; no clean-clone pass is claimed. The index
+is left unchanged and all checks use the existing on-disk lockfiles.
 
 ## 12. AI and third-party usage
 
 OpenAI Codex assisted with scaffolding, configuration, domain modeling, business
-policies, API/UI implementation/tests, documentation and local containers. React/Vite
+policies, API/UI implementation/tests, documentation, local containers and M5
+health/CI/hosting preparation. M5 primary references are in the deployment runbook. React/Vite
 and NestJS scaffolds remain; M4 replaces the visible frontend starter. M3 adds compatible Nest Swagger 11,
 class-validator and class-transformer; versions are governed by manifests/lockfiles.
 Official Nest documentation informed validation, request scopes and OpenAPI setup;
@@ -443,3 +496,5 @@ M4 adds Playwright with real-API browser fixtures; the UI uses native controls a
 CSS/SVG, without an external design template, icon package or image-generation
 service. Official React/Playwright references are in [M4 evidence](docs/m4-verification.md).
 See [PROMPTS.md](PROMPTS.md) for chronological requests and use notes.
+
+Dashboard visual references: [Nasim’s Doctor Appointment Booking](https://dribbble.com/shots/27618363-Doctor-Appointment-Booking) and the user-supplied picker image; adapted to the existing clinic theme. New icons use [Phosphor React](https://github.com/phosphor-icons/react), version 2.1.10, MIT. Source photos/branding are not embedded. See [design QA](design-qa.md).

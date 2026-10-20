@@ -8,6 +8,13 @@ import type {
   PatientInput,
 } from "./types";
 
+function windowInputs(windows: readonly LocalWindow[]): LocalWindow[] {
+  return windows.map(({ startMinute, endMinute }) => ({
+    startMinute,
+    endMinute,
+  }));
+}
+
 const explanations: Readonly<Record<string, string>> = {
   INVALID_DOMAIN_VALUE:
     "A supplied value is invalid. Check dates, times, identifiers and phone format.",
@@ -253,7 +260,7 @@ export class ClinicApi {
   ) {
     await this.request(`/doctors/${doctorId}/availability/weekly/${weekday}`, {
       method: "PUT",
-      body: { windows },
+      body: { windows: windowInputs(windows) },
     });
   }
   async override(
@@ -264,7 +271,7 @@ export class ClinicApi {
   ) {
     await this.request(`/doctors/${doctorId}/availability/overrides/${date}`, {
       method: "PUT",
-      body: { windows, reason },
+      body: { windows: windowInputs(windows), reason },
     });
   }
   async removeOverride(doctorId: string, date: string) {

@@ -1,0 +1,52 @@
+# Proposed free Render topology. Actual public URLs are recorded after deployment.
+# Values marked sync:false are entered in the dashboard, never committed secrets.
+services:
+  - type: web
+    name: kjbn-clinic-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci --include=dev && node node_modules/@prisma/engines/scripts/postinstall.js && npm run build
+    startCommand: node scripts/start-hosted.mjs
+    healthCheckPath: /health/ready
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kjbn-clinic-db
+          property: connectionString
+      - key: CORS_ORIGINS
+        sync: false
+      - key: REVIEW_MODE
+        value: "true"
+      - key: SEED_DEMO_DATA
+        value: "true"
+  - type: web
+    name: kjbn-clinic-ui
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: VITE_API_BASE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+databases:
+  - name: kjbn-clinic-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "17"
+    databaseName: kjbn_clinic
+    user: kjbn_clinic
+    ipAllowList: []

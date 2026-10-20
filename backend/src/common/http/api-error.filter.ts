@@ -41,6 +41,17 @@ function classify(error: unknown): {
     const status = error.getStatus();
     const response = error.getResponse();
     if (
+      status === 503 &&
+      typeof response === 'object' &&
+      'code' in response &&
+      response.code === 'DATABASE_UNAVAILABLE'
+    )
+      return {
+        status,
+        code: 'DATABASE_UNAVAILABLE',
+        message: 'Database is temporarily unavailable',
+      };
+    if (
       status === 400 &&
       typeof response === 'object' &&
       'code' in response &&

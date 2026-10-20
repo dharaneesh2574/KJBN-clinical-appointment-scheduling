@@ -1,30 +1,58 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import {
+  CalendarBlankIcon,
+  SquaresFourIcon,
+  UsersIcon,
+  ListChecksIcon,
+  FirstAidKitIcon,
+  PlusIcon,
+  ArrowsClockwiseIcon,
+} from "@phosphor-icons/react";
+import { Dashboard } from "./features/schedule/Dashboard";
+import { BookingWizard } from "./features/schedule/BookingWizard";
 import { ClinicApi } from "./api/client";
 import type { Appointment, Doctor } from "./api/types";
 import { Clinic } from "./features/clinic/Clinic";
 import { Patients } from "./features/patients/Patients";
 import { AppointmentDialog } from "./features/schedule/AppointmentDialog";
 import { BookingDialog } from "./features/schedule/BookingDialog";
-import type { BookingSelection } from "./features/schedule/BookingDialog";
+import type {
+  BookingDraft,
+  BookingSelection,
+} from "./features/schedule/BookingDialog";
 import {
   DateNavigator,
   Schedule,
   TodayQueue,
 } from "./features/schedule/Schedule";
-import { clinicDate, dateLabel, isReviewInstant, time } from "./shared/time";
+import {
+  clinicDate,
+  dateLabel,
+  dateTime,
+  isReviewInstant,
+  time,
+} from "./shared/time";
 import { ErrorNotice, Loading } from "./shared/ui";
 import { useClinicTime } from "./shared/use-clinic-time";
 import { useResource } from "./shared/use-resource";
 import "./App.css";
+import "./features/schedule/dashboard.css";
+import "./features/schedule/booking.css";
 
-type Tab = "schedule" | "patients" | "queue" | "clinic";
+type Tab = "dashboard" | "schedule" | "patients" | "queue" | "clinic";
 const tabs: readonly {
   id: Tab;
   title: string;
   subtitle: string;
   nav: string;
 }[] = [
+  {
+    id: "dashboard",
+    title: "Appointments & scheduling",
+    subtitle: "Every visit, one clear view. Let’s make today run smoothly.",
+    nav: "Dashboard",
+  },
   {
     id: "schedule",
     title: "A well-planned day.",
@@ -51,29 +79,17 @@ const tabs: readonly {
   },
 ];
 function NavIcon({ tab }: { tab: Tab }) {
-  const paths: Readonly<Record<Tab, string>> = {
-    schedule: "M4 5h16v15H4z M4 10h16 M8 3v4 M16 3v4 M8 14h2 M14 14h2",
-    patients:
-      "M16 20v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M17 5a3 3 0 0 1 0 6 M20 20v-2a4 4 0 0 0-3-3.87",
-    queue: "M8 5h12 M8 12h12 M8 19h12 M3 5h1 M3 12h1 M3 19h1",
-    clinic: "M4 20V6h16v14H4z M9 6V3h6v3 M9 12h6 M12 9v6",
+  const icons = {
+    dashboard: SquaresFourIcon,
+    schedule: CalendarBlankIcon,
+    patients: UsersIcon,
+    queue: ListChecksIcon,
+    clinic: FirstAidKitIcon,
   };
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d={paths[tab]} />
-    </svg>
-  );
+  const Icon = icons[tab];
+  return <Icon size={20} aria-hidden="true" />;
 }
+
 function ReviewerClock({
   value,
   onApply,
@@ -142,10 +158,12 @@ function Workspace({
   api,
   initialDoctors,
   tab,
+  onTab,
 }: {
   api: ClinicApi;
   initialDoctors: readonly Doctor[];
   tab: Tab;
+  onTab: (tab: Tab) => void;
 }) {
   const [doctors, setDoctors] = useState(initialDoctors);
   const now = useClinicTime(api.reviewNow);
@@ -153,6 +171,13 @@ function Workspace({
   const [date, setDate] = useState(today);
   const [revision, setRevision] = useState(0);
   const [booking, setBooking] = useState<BookingSelection | null>(null);
+  const [wizard, setWizard] = useState(false);
+  const [bookingDraft, setBookingDraft] = useState<BookingDraft | null>(null);
+  const [moving, setMoving] = useState<Appointment | null>(null);
+  const moveHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (moving && tab === "schedule") moveHeading.current?.focus();
+  }, [moving, tab]);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [message, setMessage] = useState("");
   const [directoryError, setDirectoryError] = useState<unknown>(null);
@@ -170,17 +195,35 @@ function Workspace({
     }
   }
   function changed(message: string, directory = false) {
+    setWizard(false);
     setBooking(null);
+    setBookingDraft(null);
+    setMoving(null);
     setAppointment(null);
     setMessage(message);
     setRevision((n) => n + 1);
     if (directory) void refresh();
   }
+  function startMove(item: Appointment, target?: BookingSelection) {
+    setAppointment(null);
+    setBookingDraft(null);
+    setMoving(item);
+    setMessage("");
+    setDate(target?.date ?? clinicDate(item.startsAt));
+    setBooking(target ? { ...target, original: item } : null);
+    onTab("schedule");
+  }
+  function chooseSlot(selection: BookingSelection) {
+    setBooking(moving ? { ...selection, original: moving } : selection);
+    setMessage("");
+  }
   const current = tabs.find((item) => item.id === tab) ?? tabs[0];
   const active = doctors.find((doctor) => doctor.active);
   return (
     <>
-      <div className="page-heading">
+      <div
+        className={`page-heading ${tab === "dashboard" ? "dashboard-page-heading" : ""}`}
+      >
         <div>
           <span className="eyebrow">YOUR CLINIC, IN SYNC</span>
           <h1>{current.title}</h1>
@@ -190,14 +233,13 @@ function Workspace({
           className="button"
           disabled={!active}
           onClick={() => {
-            if (active)
-              setBooking({
-                doctorId: active.id,
-                date: tab === "schedule" ? date : today,
-              });
+            setMoving(null);
+            setBookingDraft(null);
+            setMessage("");
+            setWizard(true);
           }}
         >
-          <span aria-hidden="true">＋</span> Book appointment
+          <PlusIcon size={18} aria-hidden="true" /> Book appointment
         </button>
       </div>
       {api.reviewNow && (
@@ -224,13 +266,46 @@ function Workspace({
       {directoryError !== null && (
         <ErrorNotice error={directoryError} retry={() => void refresh()} />
       )}
-      <div className="workspace-toolbar">
+      {moving && tab === "schedule" && (
+        <section className="move-banner" aria-label="Move appointment">
+          <div role="status">
+            <span className="eyebrow">MOVE MODE</span>
+            <h2 ref={moveHeading} tabIndex={-1}>
+              Choose a new slot
+            </h2>
+            <p>
+              From {doctors.find((item) => item.id === moving.doctorId)?.name} ·{" "}
+              {dateTime(moving.startsAt)}
+            </p>
+            <p className="small-text">
+              Pick an available slot below, or change the day. Your original
+              appointment stays booked until you confirm.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={() => {
+              setMoving(null);
+              setBookingDraft(null);
+              setMessage(
+                "Move cancelled. The original appointment is unchanged.",
+              );
+            }}
+          >
+            Cancel move
+          </button>
+        </section>
+      )}
+      <div
+        className={`workspace-toolbar ${tab === "dashboard" ? "dashboard-toolbar" : ""}`}
+      >
         {tab === "schedule" ? (
           <DateNavigator date={date} today={today} onDate={setDate} />
         ) : (
           <p className="small-text muted">
-            {dateLabel(today)} <span className="separator">/</span> Asia/Kolkata
-            (IST)
+            {dateLabel(tab === "dashboard" ? date : today)}{" "}
+            <span className="separator">/</span> Asia/Kolkata (IST)
           </p>
         )}
         <button
@@ -238,18 +313,33 @@ function Workspace({
           disabled={refreshing}
           onClick={() => void refresh()}
         >
-          <span aria-hidden="true">↻</span>{" "}
+          <ArrowsClockwiseIcon size={16} aria-hidden="true" />{" "}
           {refreshing ? "Refreshing…" : "Refresh"}
         </button>
       </div>
       <div className="workspace-content">
+        {tab === "dashboard" && (
+          <Dashboard
+            api={api}
+            doctors={doctors}
+            date={date}
+            today={today}
+            revision={revision}
+            onDate={setDate}
+            onOpen={setAppointment}
+            onBook={() => setWizard(true)}
+            onRefresh={() => void refresh()}
+          />
+        )}
         {tab === "schedule" && (
           <Schedule
             api={api}
             doctors={doctors}
             date={date}
             revision={revision}
-            onBook={setBooking}
+            onBook={chooseSlot}
+            moving={moving}
+            onMove={startMove}
             onOpen={setAppointment}
             onRefresh={() => void refresh()}
           />
@@ -283,12 +373,37 @@ function Workspace({
           />
         )}
       </div>
+      {wizard && (
+        <BookingWizard
+          api={api}
+          doctors={doctors}
+          initialDate={tab === "dashboard" || tab === "schedule" ? date : today}
+          onClose={() => setWizard(false)}
+          onSaved={(message, savedDate) => {
+            setDate(savedDate);
+            onTab("dashboard");
+            changed(message);
+          }}
+        />
+      )}
       {booking && (
         <BookingDialog
           api={api}
           doctors={doctors}
           selection={booking}
-          onClose={() => setBooking(null)}
+          draft={bookingDraft}
+          onClose={() => {
+            setBooking(null);
+            setBookingDraft(null);
+          }}
+          onChooseSlot={(draft) => {
+            setBookingDraft(draft);
+            setBooking(null);
+            setRevision((n) => n + 1);
+            setMessage(
+              "Choose another available slot. Your patient and reason are kept.",
+            );
+          }}
           onSaved={changed}
         />
       )}
@@ -299,21 +414,14 @@ function Workspace({
           doctors={doctors}
           onClose={() => setAppointment(null)}
           onChanged={changed}
-          onReschedule={(item) => {
-            setAppointment(null);
-            setBooking({
-              doctorId: item.doctorId,
-              date: clinicDate(item.startsAt),
-              original: item,
-            });
-          }}
+          onReschedule={startMove}
         />
       )}
     </>
   );
 }
 function App() {
-  const [tab, setTab] = useState<Tab>("schedule");
+  const [tab, setTab] = useState<Tab>("dashboard");
   const [reviewNow, setReviewNow] = useState("");
   const [revision, setRevision] = useState(0);
   const api = useMemo(() => new ClinicApi(reviewNow), [reviewNow]);
@@ -330,9 +438,9 @@ function App() {
           href="#"
           onClick={(event) => {
             event.preventDefault();
-            setTab("schedule");
+            setTab("dashboard");
           }}
-          aria-label="KJBN Clinic schedule"
+          aria-label="KJBN Clinic dashboard"
         >
           <span className="brand-mark" aria-hidden="true">
             ✚
@@ -405,6 +513,7 @@ function App() {
                 api={api}
                 initialDoctors={directory.data}
                 tab={tab}
+                onTab={setTab}
               />
             )
           )}

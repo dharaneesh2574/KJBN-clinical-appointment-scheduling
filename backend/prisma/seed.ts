@@ -22,7 +22,13 @@ async function seed() {
     await client.$transaction(
       async (transaction) => {
         await acquireSchedulingLock(transaction);
+        const newDoctorIds = new Set<string>();
         for (const doctor of doctors) {
+          const existing = await transaction.doctor.findUnique({
+            where: { id: doctor.id },
+            select: { id: true },
+          });
+          if (!existing) newDoctorIds.add(doctor.id);
           await transaction.doctor.upsert({
             where: { id: doctor.id },
             create: doctor,
@@ -36,7 +42,11 @@ async function seed() {
             update: {},
           });
         }
+        // Availability is initialized only for newly created seed doctors.
+        // A replaced window has a new ID; an empty day/removed override can be
+        // intentional. Reconstructing either on rerun would undo clinic edits.
         for (let doctor = 1; doctor <= 2; doctor += 1) {
+          if (!newDoctorIds.has(seedId(doctor))) continue;
           for (let weekday = 1; weekday <= 5; weekday += 1) {
             for (const [index, window] of [
               { startMinute: 540, endMinute: 720 },
@@ -51,36 +61,40 @@ async function seed() {
             }
           }
         }
-        await transaction.availabilityOverride.upsert({
-          where: { id: seedId(301) },
-          create: {
-            id: seedId(301),
-            doctorId: seedId(1),
-            date: new Date('2026-10-20T00:00:00Z'),
-            reason: 'Fictional leave day',
-          },
-          update: {},
-        });
-        await transaction.availabilityOverride.upsert({
-          where: { id: seedId(302) },
-          create: {
-            id: seedId(302),
-            doctorId: seedId(2),
-            date: new Date('2026-10-25T00:00:00Z'),
-            reason: 'Fictional extra Sunday clinic',
-          },
-          update: {},
-        });
-        await transaction.availabilityWindow.upsert({
-          where: { id: seedId(303) },
-          create: {
-            id: seedId(303),
-            overrideId: seedId(302),
-            startMinute: 600,
-            endMinute: 720,
-          },
-          update: {},
-        });
+        if (newDoctorIds.has(seedId(1))) {
+          await transaction.availabilityOverride.upsert({
+            where: { id: seedId(301) },
+            create: {
+              id: seedId(301),
+              doctorId: seedId(1),
+              date: new Date('2026-10-20T00:00:00Z'),
+              reason: 'Fictional leave day',
+            },
+            update: {},
+          });
+        }
+        if (newDoctorIds.has(seedId(2))) {
+          await transaction.availabilityOverride.upsert({
+            where: { id: seedId(302) },
+            create: {
+              id: seedId(302),
+              doctorId: seedId(2),
+              date: new Date('2026-10-25T00:00:00Z'),
+              reason: 'Fictional extra Sunday clinic',
+            },
+            update: {},
+          });
+          await transaction.availabilityWindow.upsert({
+            where: { id: seedId(303) },
+            create: {
+              id: seedId(303),
+              overrideId: seedId(302),
+              startMinute: 600,
+              endMinute: 720,
+            },
+            update: {},
+          });
+        }
         for (const appointment of appointments) {
           // Events are created with the new appointment only: reruns never rewrite
           // user-edited appointments or invent events for pre-existing records.

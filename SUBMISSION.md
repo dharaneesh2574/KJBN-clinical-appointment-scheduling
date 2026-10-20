@@ -4,9 +4,9 @@ Problem 2 has a React/TypeScript clinic workspace backed by the NestJS/Prisma/
 PostgreSQL API enforcing R1–R7. It supports doctor day grids, valid-slot booking/
 rescheduling, patient registration/phone lookup/history/flags, today's queue and
 clinic availability/settings. Strict API validation, safe errors/logging,
-request-isolated reviewer time and OpenAPI are implemented. Local containers,
-18 browser cases and 214 backend tests pass; public hosting and final operational/
-submission gates remain incomplete.
+request-isolated reviewer time and OpenAPI are implemented. Local containers, database readiness/recovery,
+27 browser cases and 220 backend tests pass; CI and free Render configuration
+are prepared, with public hosting and final submission gates incomplete.
 
 ## B. Three design decisions
 
@@ -39,22 +39,23 @@ submission gates remain incomplete.
 
 ## C. The hardest part
 
-M2's concurrency boundary (`ecdbbe0`) and M3's real API (`f07683a`) had to remain
-intact while building usable asynchronous UI flows. Browser tests create actual
-PostgreSQL fixtures, race a booking against a stale slot, and verify a rejected
-reschedule leaves the original Booked before a valid linked replacement succeeds.
-A mobile test found navigation min-content sizing made the page 413px wide at a
-375px viewport; shrinkable grid tracks fixed it. Another found that unmounting a
-native dialog lost keyboard focus; capturing/restoring the connected opener fixed
-that. Earlier hidden-history counts, worker fixture collisions and label selectors
-were harness issues, corrected before the complete 18-case run passed. M4 is
-verified 2026-10-20 and pending a manual commit; no hash is invented.
+M2's concurrency boundary (`ecdbbe0`) and M3's API (`f07683a`) had to survive
+real UI races and failure recovery. Browser tests prove a rejected reschedule
+preserves the original before a valid replacement succeeds. M4 (`9197ec5`) fixed
+mobile overflow and dialog focus restoration; its calendar/dashboard follow-ups
+are verified but uncommitted. M5's local deployment found that re-seeding after
+weekly hours were replaced tried to recreate old window IDs. An isolated
+edit-and-reseed regression reproduced the failure. The seed now bootstraps
+availability only for newly created doctors, preserving existing schedules,
+closed days and override edits. Both new seed regressions and the operational
+outage/recovery gate pass. M5 changes await manual commit; no hash is invented.
 
 ## D. How I handle failure
 
 Invalid input returns 400, addressed missing resources 404, disabled reviewer
 headers 403, and rule/phone/contention conflicts 409. Unexpected failures return
-500 with a safe fixed message and rollback. Every error carries a generated
+500 with a safe fixed message and rollback. Database readiness returns a safe
+503 while process liveness remains available. Every error carries a generated
 request ID; one structured completion log uses UTC, level, route template, status,
 duration, safe code and UUIDs, excluding personal values and raw exception text.
 The UI explains known codes, exposes correlation/affected references, preserves
@@ -70,15 +71,15 @@ are never retried automatically. Loading/empty/error states remain explicit.
 | M1 | 2026-10-19 | `7e795de` |
 | M2 | Verified 2026-10-20 | `ecdbbe0` |
 | M3 | Verified 2026-10-20 | `f07683a` |
-| M4 | Verified 2026-10-20 | Pending user manual commit |
-| M5 | Local container subset verified 2026-10-19; milestone incomplete | Pending full deployment gate |
+| M4 | Verified 2026-10-20 | `9197ec5`; dashboard/calendar/payload follow-ups pending manual commit |
+| M5 | Local gates verified 2026-10-20; live deployment incomplete | Uncommitted; public verification pending |
 | M6 | Not started | — |
 
 ## F. If I had two more days
 
-1. Reconcile the staged lockfile removals with install/build commands for clean clones.
-2. Add CI and database readiness to detect failures consistently.
-3. Deploy/re-seed public UI/API and verify CORS, cold starts and reviewer access.
+1. Resolve ignored lockfiles so clean-clone CI and deployment can use npm ci.
+2. Authenticate hosting, deploy the seeded UI/API and confirm database review expiry.
+3. Verify remote CI, hosted CORS, cold starts and reviewer edge cases.
 4. Expand browser/accessibility checks beyond the verified Chrome/phone-width flows.
 5. Run clean-clone/hosted edge cases and finalize documentation, links and tagging.
 
@@ -95,7 +96,7 @@ Provisional scores describe the current partial product.
 | Data modelling and persistence | 9 | 4 | Versioned constraints/migrations, repeatable seed, protected writes |
 | API design | 8 | 4 | Core routes, strict nested DTOs, explicit responses, bounds and OpenAPI |
 | UI usability | 6 | 4 | Real API flows, explicit IST/flags/failures, responsive and keyboard checks |
-| Testing | 7 | 4 | 18 browser + 214 backend cases; backend lines 97.48% overall / 97.91% business |
-| Deployment and operability | 5 | 2 | Local containers verified; hosting/readiness/CI pending |
-| Git hygiene | 4 | 3 | M0–M3 hashes recorded; M4 awaits manual commit; user staging preserved |
+| Testing | 7 | 4 | 27 browser + 220 backend cases; backend lines 97.47% overall / 97.91% business |
+| Deployment and operability | 5 | 3 | Local stack, readiness/recovery and CI config verified; hosting/remote CI pending |
+| Git hygiene | 4 | 3 | M0–M4 hashes recorded; follow-up awaits manual commit; user index preserved |
 | Documentation and write-up | 4 | 3 | Current routes/time/logging/tests documented; final hosted checks pending |

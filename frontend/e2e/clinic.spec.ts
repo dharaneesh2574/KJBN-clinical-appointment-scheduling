@@ -168,9 +168,13 @@ test.beforeAll(async ({ request }) => {
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "A well-planned day." }),
+    page.getByRole("heading", {
+      name: "Appointments & scheduling",
+      exact: true,
+    }),
   ).toBeVisible();
   await applyClock(page);
+  await page.getByRole("button", { name: "Schedule", exact: true }).click();
 });
 
 test("IST date and time utilities handle UTC midnight and leap boundaries", () => {
@@ -230,10 +234,18 @@ test("books a valid slot after phone lookup and preserves its real API history",
 }) => {
   const person = await patient(request);
   await openSlot(page, "2026-10-22");
+  const booking = page.getByRole("dialog");
+  await expect(
+    booking.getByRole("region", { name: "Selected appointment slot" }),
+  ).toContainText("09:00–09:15 IST");
+  await expect(booking.getByRole("combobox")).toHaveCount(0);
+  await expect(booking.locator('input[type="date"]')).toHaveCount(0);
   await findInDialog(page, person.phone);
+  await expect(booking.getByRole("checkbox")).toHaveCount(0);
   await page
     .getByRole("textbox", { name: "Reason for visit", exact: true })
     .fill("Fictional annual checkup");
+  await page.screenshot({ path: "test-results/quick-booking-desktop.png" });
   await page
     .getByRole("button", { name: "Confirm booking", exact: true })
     .click();
@@ -388,11 +400,27 @@ test("a stale slot conflict keeps patient and reason while refreshing free slots
   ).toHaveValue("Keep this reason after a conflict");
   await expect(dialog.getByText(person.name, { exact: true })).toBeVisible();
   await expect(
-    dialog.getByRole("combobox", { name: "Available time (IST)", exact: true }),
-  ).toHaveValue("");
+    dialog
+      .getByRole("status")
+      .filter({ hasText: "This slot is no longer available" }),
+  ).toBeVisible();
   await expect(
     dialog.getByRole("button", { name: "Confirm booking", exact: true }),
   ).toBeDisabled();
+  await dialog
+    .getByRole("button", { name: "Choose another slot", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: `Book ${doctorName} at 09:15`, exact: true })
+    .click();
+  await expect(dialog.getByText(person.name, { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByRole("textbox", { name: "Reason for visit", exact: true }),
+  ).toHaveValue("Keep this reason after a conflict");
+  await dialog
+    .getByRole("button", { name: "Confirm booking", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 test("invalid reschedule preserves the original, then valid reschedule links history", async ({
@@ -412,29 +440,45 @@ test("invalid reschedule preserves the original, then valid reschedule links his
   await page
     .getByRole("button", { name: `View ${person.name} at 10:00`, exact: true })
     .click();
-  await page.getByRole("button", { name: "Reschedule", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Move appointment", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page
+    .getByRole("button", {
+      name: `Move to ${doctorName} at 09:00`,
+      exact: true,
+    })
+    .click();
   const dialog = page.getByRole("dialog", {
-    name: "Reschedule appointment",
+    name: "Confirm appointment move",
     exact: true,
   });
+  await expect(dialog.getByText(person.name, { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByRole("button", {
+      name: "Continue with this patient",
+      exact: true,
+    }),
+  ).toHaveCount(0);
   await dialog
-    .getByRole("button", { name: "Continue with this patient", exact: true })
-    .click();
-  await dialog
-    .getByRole("combobox", { name: "Available time (IST)", exact: true })
-    .selectOption("2026-10-26T03:30:00.000Z");
-  await dialog
-    .getByRole("button", { name: "Confirm reschedule", exact: true })
+    .getByRole("button", { name: "Confirm move", exact: true })
     .click();
   await expect(dialog.getByRole("alert")).toContainText("PATIENT_OVERLAP");
   expect((await getAppointment(request, string(original.id))).status).toBe(
     "BOOKED",
   );
   await dialog
-    .getByRole("combobox", { name: "Available time (IST)", exact: true })
-    .selectOption("2026-10-26T05:30:00.000Z");
+    .getByRole("button", { name: "Choose another slot", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: `Move to ${doctorName} at 11:00`,
+      exact: true,
+    })
+    .click();
   await dialog
-    .getByRole("button", { name: "Confirm reschedule", exact: true })
+    .getByRole("button", { name: "Confirm move", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect((await getAppointment(request, string(original.id))).status).toBe(
@@ -780,7 +824,7 @@ test("API outage shows an actionable error and reconnects without mock patient d
   await page.unroute(`${apiOrigin}/doctors?*`);
   await page.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "A well-planned day." }),
+    page.getByRole("heading", { name: "Appointments & scheduling" }),
   ).toBeVisible();
 });
 
@@ -920,4 +964,485 @@ test("late cancellation uses the API status and patient eligibility expires with
   await expect(
     panel.getByText("Late-cancelled", { exact: true }).first(),
   ).toBeVisible();
+});
+
+test("saves loaded weekly hours without sending response-only metadata", async ({
+  page,
+}) => {
+  await page
+    .getByRole("button", { name: "Clinic settings", exact: true })
+    .click();
+  await expect(page.getByLabel("Start (IST)", { exact: true })).toHaveValue(
+    "08:00",
+  );
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      response.url().endsWith(`/doctors/${doctorA}/availability/weekly/1`),
+  );
+  await page
+    .getByRole("button", { name: "Save weekly hours", exact: true })
+    .click();
+  const response = await responsePromise;
+  const payload: unknown = response.request().postDataJSON();
+  expect(response.status(), JSON.stringify(payload)).toBe(204);
+  expect(payload).toEqual({ windows: [{ startMinute: 480, endMinute: 720 }] });
+  await expect(
+    page.getByRole("status").filter({ hasText: "Weekly hours updated." }),
+  ).toBeVisible();
+});
+
+test("booking button opens the patient and doctor modal", async ({ page }) => {
+  await page.getByRole("button", { name: "Patients", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Book appointment", exact: false })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Book an appointment",
+    exact: true,
+  });
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByRole("combobox", { name: "Select doctor", exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Choose date & time", exact: true }),
+  ).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("keyboard move carries patient and reason across days and doctor durations", async ({
+  page,
+  request,
+}) => {
+  const person = await patient(request, "Fictional Keyboard Move");
+  const original = await book(
+    request,
+    person.id,
+    doctorA,
+    "2026-11-26",
+    "09:15",
+  );
+  await scheduleDate(page, "2026-11-26");
+  await page
+    .getByRole("button", { name: `View ${person.name} at 09:15`, exact: true })
+    .focus();
+  await page.keyboard.press("Enter");
+  await page
+    .getByRole("button", { name: "Move appointment", exact: true })
+    .focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("region", { name: "Move appointment", exact: true }),
+  ).toBeVisible();
+  await scheduleDate(page, "2026-11-27");
+  const target = page.getByRole("button", {
+    name: `Move to ${otherDoctorName} at 10:30`,
+    exact: true,
+  });
+  await target.focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Confirm appointment move" });
+  await expect(dialog.getByText(person.name, { exact: true })).toBeVisible();
+  await expect(dialog).toContainText("10:30–11:00 IST");
+  await expect(dialog.getByRole("textbox")).toHaveCount(0);
+  await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+  expect((await getAppointment(request, string(original.id))).status).toBe(
+    "BOOKED",
+  );
+  await dialog
+    .getByRole("button", { name: "Confirm move", exact: true })
+    .focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect((await getAppointment(request, string(original.id))).status).toBe(
+    "CANCELLED",
+  );
+  await page
+    .getByRole("button", { name: `View ${person.name} at 10:30`, exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText(
+    "Fictional UI verification visit",
+  );
+  await expect(page.getByRole("dialog")).toContainText(string(original.id));
+});
+
+test("dragging a booked visit only reschedules after explicit confirmation", async ({
+  page,
+  request,
+}) => {
+  const person = await patient(request, "Fictional Drag Move");
+  const original = await book(request, person.id, doctorA, "2026-11-28");
+  await scheduleDate(page, "2026-11-28");
+  const source = page.getByRole("button", {
+    name: `View ${person.name} at 09:00`,
+    exact: true,
+  });
+  const target = page.getByRole("button", {
+    name: `Book ${otherDoctorName} at 10:00`,
+    exact: true,
+  });
+  await source.dragTo(target);
+  const dialog = page.getByRole("dialog", { name: "Confirm appointment move" });
+  await expect(dialog.getByText(person.name, { exact: true })).toBeVisible();
+  await expect(dialog).toContainText("10:00–10:30 IST");
+  expect((await getAppointment(request, string(original.id))).status).toBe(
+    "BOOKED",
+  );
+  await page.screenshot({ path: "test-results/quick-move-desktop.png" });
+  await dialog
+    .getByRole("button", { name: "Confirm move", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect((await getAppointment(request, string(original.id))).status).toBe(
+    "CANCELLED",
+  );
+  await expect(
+    page.getByRole("button", {
+      name: `View ${person.name} at 10:00`,
+      exact: true,
+    }),
+  ).toBeVisible();
+});
+
+test("phone tap move and cancellation preserve the original appointment", async ({
+  page,
+  request,
+}) => {
+  const person = await patient(request, "Fictional Phone Move");
+  const original = await book(
+    request,
+    person.id,
+    doctorB,
+    "2026-11-29",
+    "09:30",
+  );
+  const baseline = await getAppointment(request, string(original.id));
+  await page.setViewportSize({ width: 375, height: 812 });
+  await scheduleDate(page, "2026-11-29");
+  await page
+    .getByRole("button", { name: `View ${person.name} at 09:30`, exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Move appointment", exact: true })
+    .click();
+  await scheduleDate(page, "2026-11-30");
+  await page
+    .getByRole("button", {
+      name: `Move to ${doctorName} at 10:45`,
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Confirm appointment move" });
+  await expect(dialog.getByText(person.name, { exact: true })).toBeVisible();
+  await expect(dialog).toContainText("10:45–11:00 IST");
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBeTruthy();
+  expect(
+    await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBeTruthy();
+  await page.screenshot({ path: "test-results/quick-move-phone.png" });
+  await dialog.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByRole("button", { name: "Cancel move", exact: true }).click();
+  await expect(
+    page.getByRole("region", { name: "Move appointment", exact: true }),
+  ).toHaveCount(0);
+  const unchanged = await getAppointment(request, string(original.id));
+  expect(unchanged.status).toBe("BOOKED");
+  expect(unchanged.startsAt).toBe(original.startsAt);
+  expect(unchanged.reason).toBe(original.reason);
+  expect(unchanged.events).toEqual(baseline.events);
+});
+
+test("late move reveals deposit acknowledgement when the API requires it", async ({
+  page,
+  request,
+}) => {
+  const person = await patient(request, "Fictional Late Move");
+  const penalty = await book(
+    request,
+    person.id,
+    doctorB,
+    "2026-10-18",
+    "08:00",
+    "2026-10-17T09:00:00+05:30",
+  );
+  const noShow = await request.patch(
+    `${apiOrigin}/appointments/${string(penalty.id)}/status`,
+    { headers, data: { status: "NO_SHOW" } },
+  );
+  expect(noShow.ok()).toBeTruthy();
+  const original = await book(
+    request,
+    person.id,
+    doctorA,
+    "2026-10-20",
+    "10:30",
+  );
+  await page
+    .getByRole("button", { name: "Today’s queue", exact: true })
+    .click();
+  await page.getByRole("button").filter({ hasText: person.name }).click();
+  await page
+    .getByRole("button", { name: "Move appointment", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "A well-planned day." }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: `Move to ${doctorName} at 11:00`,
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Confirm appointment move" });
+  await expect(dialog.getByText(person.name, { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+  await dialog
+    .getByRole("button", { name: "Confirm move", exact: true })
+    .click();
+  await expect(dialog.getByRole("alert")).toContainText("DEPOSIT_REQUIRED");
+  expect((await getAppointment(request, string(original.id))).status).toBe(
+    "BOOKED",
+  );
+  await expect(
+    dialog.getByRole("button", { name: "Confirm move", exact: true }),
+  ).toBeDisabled();
+  await dialog.getByLabel("Deposit acknowledged", { exact: false }).check();
+  await dialog
+    .getByRole("button", { name: "Confirm move", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect((await getAppointment(request, string(original.id))).status).toBe(
+    "LATE_CANCELLED",
+  );
+});
+
+test("dashboard calendar and status filters show actual appointment lifecycle states", async ({
+  page,
+  request,
+}) => {
+  const entries = [
+    { name: "Fictional Dashboard Booked", start: "11:00", state: "BOOKED" },
+    {
+      name: "Fictional Dashboard Completed",
+      start: "08:00",
+      state: "COMPLETED",
+    },
+    {
+      name: "Fictional Dashboard Cancelled",
+      start: "08:15",
+      state: "CANCELLED",
+    },
+    {
+      name: "Fictional Dashboard Late",
+      start: "09:00",
+      state: "LATE_CANCELLED",
+    },
+    { name: "Fictional Dashboard Absent", start: "08:30", state: "NO_SHOW" },
+  ];
+  for (const entry of entries) {
+    const person = await patient(request, entry.name);
+    const visit = await book(
+      request,
+      person.id,
+      doctorA,
+      "2026-12-05",
+      entry.start,
+    );
+    if (entry.state === "COMPLETED" || entry.state === "NO_SHOW") {
+      const result = await request.patch(
+        `${apiOrigin}/appointments/${string(visit.id)}/status`,
+        {
+          headers: { "X-Review-Now": "2026-12-05T12:00:00+05:30" },
+          data: { status: entry.state },
+        },
+      );
+      expect(result.ok()).toBeTruthy();
+    } else if (
+      entry.state === "CANCELLED" ||
+      entry.state === "LATE_CANCELLED"
+    ) {
+      await post(
+        request,
+        `/appointments/${string(visit.id)}/cancellation`,
+        undefined,
+        entry.state === "LATE_CANCELLED"
+          ? "2026-12-05T08:00:00+05:30"
+          : reviewNow,
+      );
+    }
+  }
+  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
+  await page
+    .getByLabel("Dashboard date (IST)", { exact: true })
+    .fill("2026-12-05");
+  const panel = page.getByRole("region", {
+    name: "Appointments for selected date",
+    exact: true,
+  });
+  await expect(panel.locator(".appointment-row")).toHaveCount(5);
+  await expect(panel).toContainText("Late-cancelled");
+  await expect(page.locator(".dashboard-stats")).toContainText("5");
+  await page.screenshot({
+    path: "test-results/dashboard-desktop.png",
+    fullPage: true,
+  });
+  await panel.getByRole("button", { name: "Cancelled", exact: true }).click();
+  await expect(panel.locator(".appointment-row")).toHaveCount(2);
+  await panel
+    .getByRole("button", { name: "All appointments", exact: true })
+    .click();
+  await page
+    .getByLabel("Search appointment patient or reason", { exact: true })
+    .fill("Dashboard Absent");
+  await expect(panel.locator(".appointment-row")).toHaveCount(1);
+  await expect(panel).toContainText("No-show");
+  await page
+    .getByLabel("Search appointment patient or reason", { exact: true })
+    .fill("");
+  await page
+    .getByRole("button", { name: "Sunday, 6 December 2026", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Dashboard date (IST)", { exact: true }),
+  ).toHaveValue("2026-12-06");
+  await expect(panel).toContainText("A little room in the day");
+  await page
+    .getByRole("button", { name: "Previous month", exact: true })
+    .click();
+  await expect(
+    page.getByRole("region", { name: "Appointment calendar", exact: true }),
+  ).toContainText("November 2026");
+  await page.getByRole("button", { name: "Go to today", exact: true }).click();
+  await expect(
+    page.getByLabel("Dashboard date (IST)", { exact: true }),
+  ).toHaveValue("2026-10-20");
+});
+
+test("booking modal chooses patient doctor date and live time chips before saving", async ({
+  page,
+  request,
+}) => {
+  const person = await patient(request, "Fictional Visual Booking");
+  const occupiedPerson = await patient(request, "Fictional Occupied Time");
+  await book(request, occupiedPerson.id, doctorB, "2026-12-09", "10:00");
+  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
+  await page
+    .getByLabel("Dashboard date (IST)", { exact: true })
+    .fill("2026-12-07");
+  await page
+    .getByRole("button", { name: "Book appointment", exact: true })
+    .click();
+  await findInDialog(page, person.phone);
+  await page
+    .getByRole("dialog")
+    .getByRole("combobox", { name: "Select doctor", exact: true })
+    .selectOption(doctorB);
+  await page
+    .getByRole("button", { name: "Choose date & time", exact: true })
+    .click();
+  const picker = page.getByRole("dialog", {
+    name: "Pick a date and time",
+    exact: true,
+  });
+  await picker
+    .getByLabel("Booking date (IST)", { exact: true })
+    .fill("2026-12-09");
+  await expect(
+    picker.getByRole("button", { name: "10:00 IST — occupied", exact: true }),
+  ).toBeDisabled();
+  await picker.getByRole("button", { name: "10:30 IST", exact: true }).click();
+  await page.screenshot({ path: "test-results/booking-picker-desktop.png" });
+  await picker.getByRole("button", { name: "Continue", exact: true }).click();
+  const review = page.getByRole("dialog", {
+    name: "Book an appointment",
+    exact: true,
+  });
+  await expect(review).toContainText(person.name);
+  await expect(review).toContainText("10:30–11:00 IST");
+  await review
+    .getByRole("textbox", { name: "Reason for visit", exact: true })
+    .fill("Fictional visual picker booking");
+  await review
+    .getByRole("button", { name: "Confirm booking", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByLabel("Dashboard date (IST)", { exact: true }),
+  ).toHaveValue("2026-12-09");
+  await expect(
+    page.getByRole("region", {
+      name: "Appointments for selected date",
+      exact: true,
+    }),
+  ).toContainText(person.name);
+});
+
+test("booking picker handles empty days and phone widths without losing the patient", async ({
+  page,
+  request,
+}) => {
+  const person = await patient(request, "Fictional Picker Phone");
+  const leave = await request.put(
+    `${apiOrigin}/doctors/${doctorB}/availability/overrides/2026-12-08`,
+    { headers, data: { reason: "Fictional leave", windows: [] } },
+  );
+  expect(leave.status()).toBe(204);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page
+    .getByRole("button", { name: "Book appointment", exact: true })
+    .click();
+  await findInDialog(page, person.phone);
+  await page
+    .getByRole("dialog")
+    .getByRole("combobox", { name: "Select doctor", exact: true })
+    .selectOption(doctorB);
+  await page
+    .getByRole("button", { name: "Choose date & time", exact: true })
+    .click();
+  const picker = page.getByRole("dialog", {
+    name: "Pick a date and time",
+    exact: true,
+  });
+  await picker
+    .getByLabel("Booking date (IST)", { exact: true })
+    .fill("2026-12-08");
+  await expect(picker).toContainText("No available times");
+  await expect(
+    picker.getByRole("button", { name: "Continue", exact: true }),
+  ).toBeDisabled();
+  await picker
+    .getByRole("button", {
+      name: "Choose Thursday, 10 December 2026",
+      exact: true,
+    })
+    .click();
+  await picker.getByRole("button", { name: "10:00 IST", exact: true }).click();
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await picker.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBeTruthy();
+  await page.screenshot({ path: "test-results/booking-picker-phone.png" });
+  await picker.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText(person.name);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBeTruthy();
+  await page.screenshot({
+    path: "test-results/dashboard-phone.png",
+    fullPage: true,
+  });
 });

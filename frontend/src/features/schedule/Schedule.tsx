@@ -60,6 +60,8 @@ export function Schedule({
   onBook,
   onOpen,
   onRefresh,
+  moving,
+  onMove,
 }: {
   api: ClinicApi;
   doctors: readonly Doctor[];
@@ -68,8 +70,11 @@ export function Schedule({
   onBook: (selection: BookingSelection) => void;
   onOpen: (appointment: Appointment) => void;
   onRefresh: () => void;
+  moving: Appointment | null;
+  onMove: (appointment: Appointment, target?: BookingSelection) => void;
 }) {
   const [filter, setFilter] = useState("all");
+  const [dragged, setDragged] = useState<Appointment | null>(null);
   const load = useCallback(
     async (signal: AbortSignal) => {
       const active = doctors.filter((doctor) => doctor.active);
@@ -169,7 +174,11 @@ export function Schedule({
           <i className="legend-dot finished" />
           Completed / no-show
         </span>
-        <span className="muted">Availability is rechecked when booking.</span>
+        <span className="muted">
+          {moving
+            ? "Choose a highlighted slot to move your appointment."
+            : "Click a free slot to book. Move a booked visit from its details, or drag it to a free slot."}
+        </span>
       </div>
       {days.length === 0 ? (
         <Empty title="No active doctors yet">
@@ -231,9 +240,24 @@ export function Schedule({
                     {timeline.map((item) =>
                       item.kind === "free" ? (
                         <button
-                          className="slot free-slot"
+                          className={`slot free-slot ${moving || dragged ? "move-target" : ""}`}
                           key={`free:${item.slot.startsAt}`}
-                          aria-label={`Book ${doctor.name} at ${time(item.slot.startsAt)}`}
+                          aria-label={`${moving ? "Move to" : "Book"} ${doctor.name} at ${time(item.slot.startsAt)}`}
+                          onDragOver={(event) => {
+                            if (!dragged) return;
+                            event.preventDefault();
+                            event.dataTransfer.dropEffect = "move";
+                          }}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            if (dragged)
+                              onMove(dragged, {
+                                doctorId: doctor.id,
+                                date,
+                                slot: item.slot,
+                              });
+                            setDragged(null);
+                          }}
                           onClick={() =>
                             onBook({
                               doctorId: doctor.id,
@@ -248,13 +272,35 @@ export function Schedule({
                             {time(item.slot.endsAt)}
                           </span>
                           <span className="slot-description">
-                            Available <span aria-hidden="true">＋</span>
+                            {moving
+                              ? "Move here"
+                              : dragged
+                                ? "Drop to review move"
+                                : "Available"}{" "}
+                            <span aria-hidden="true">
+                              {moving ? "→" : "＋"}
+                            </span>
                           </span>
                         </button>
                       ) : (
                         <button
                           className={`slot visit-slot ${item.slot.status === "BOOKED" ? "" : "finished-slot"}`}
                           key={item.slot.id}
+                          disabled={!!moving}
+                          draggable={!moving && item.slot.status === "BOOKED"}
+                          onDragStart={(event) => {
+                            if (moving || item.slot.status !== "BOOKED") {
+                              event.preventDefault();
+                              return;
+                            }
+                            event.dataTransfer.setData(
+                              "application/x-kjbn-appointment",
+                              item.slot.id,
+                            );
+                            event.dataTransfer.effectAllowed = "move";
+                            setDragged(item.slot);
+                          }}
+                          onDragEnd={() => setDragged(null)}
                           aria-label={`View ${patients.get(item.slot.patientId)?.name ?? "patient"} at ${time(item.slot.startsAt)}`}
                           onClick={() => onOpen(item.slot)}
                         >
@@ -303,7 +349,7 @@ export function Schedule({
                       onBook({ doctorId: doctor.id, date, slot: free[0] })
                     }
                   >
-                    Book a visit →
+                    {moving ? "Choose first available →" : "Book a visit →"}
                   </button>
                 </footer>
               </section>

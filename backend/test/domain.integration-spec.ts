@@ -308,6 +308,50 @@ describe('M1 — real PostgreSQL schema invariants', () => {
 });
 
 describe('M1 — repeatable fictional seed', () => {
+  it('preserves replacement weekly-window IDs and hours when re-seeding', async () => {
+    await runPrisma('db', 'seed');
+    const doctorId = seedId(1);
+    await client.weeklyAvailability.deleteMany({
+      where: { doctorId, weekday: 1 },
+    });
+    const edited = await client.weeklyAvailability.create({
+      data: { doctorId, weekday: 1, startMinute: 540, endMinute: 1020 },
+    });
+    const count = await client.appointment.count();
+    await runPrisma('db', 'seed');
+    expect(
+      await client.weeklyAvailability.findMany({
+        where: { doctorId, weekday: 1 },
+      }),
+    ).toEqual([edited]);
+    expect(await client.appointment.count()).toBe(count);
+  });
+  it('preserves closed weekdays, leave windows and removed overrides on re-seed', async () => {
+    await runPrisma('db', 'seed');
+    await client.weeklyAvailability.deleteMany({
+      where: { doctorId: seedId(1), weekday: 2 },
+    });
+    await client.availabilityWindow.deleteMany({
+      where: { overrideId: seedId(302) },
+    });
+    await client.availabilityOverride.delete({ where: { id: seedId(301) } });
+    await runPrisma('db', 'seed');
+    expect(
+      await client.weeklyAvailability.count({
+        where: { doctorId: seedId(1), weekday: 2 },
+      }),
+    ).toBe(0);
+    expect(
+      await client.availabilityWindow.count({
+        where: { overrideId: seedId(302) },
+      }),
+    ).toBe(0);
+    expect(
+      await client.availabilityOverride.findUnique({
+        where: { id: seedId(301) },
+      }),
+    ).toBeNull();
+  });
   it('runs twice without duplication and preserves existing catalog edits', async () => {
     await runPrisma('db', 'seed');
     const count = await client.appointment.count();

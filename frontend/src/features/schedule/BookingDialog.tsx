@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
 import type { FormEvent } from "react";
+import { ApiError } from "../../api/client";
 import type { ClinicApi } from "../../api/client";
 import type { Appointment, Doctor, History, Slot } from "../../api/types";
-import { clinicDate, shiftDate, time } from "../../shared/time";
+import { clinicDate, dateLabel, time } from "../../shared/time";
 import { useResource } from "../../shared/use-resource";
-import { useClinicTime } from "../../shared/use-clinic-time";
 import { ErrorNotice, Loading, Modal } from "../../shared/ui";
 import {
   DepositNotice,
@@ -15,90 +15,120 @@ import {
 export interface BookingSelection {
   readonly doctorId: string;
   readonly date: string;
-  readonly slot?: Slot;
+  readonly slot: Slot;
   readonly original?: Appointment;
 }
-function ExistingPatient({
-  api,
-  id,
-  onReady,
-}: {
-  api: ClinicApi;
-  id: string;
-  onReady: (history: History) => void;
-}) {
-  const [revision, setRevision] = useState(0);
-  const load = useCallback(
-    (signal: AbortSignal) => api.history(id, 0, signal),
-    [api, id],
-  );
-  const result = useResource(load, `${api.reviewNow}:${id}:${revision}`);
-  if (result.loading)
-    return <Loading text="Loading this patient’s current eligibility…" />;
-  if (result.error)
-    return (
-      <ErrorNotice
-        error={result.error}
-        retry={() => setRevision((n) => n + 1)}
-      />
-    );
-  if (!result.data) return null;
-  return (
-    <div className="stack">
-      <PatientSummary history={result.data} />
-      <button
-        type="button"
-        className="button secondary"
-        onClick={() => {
-          if (result.data) onReady(result.data);
-        }}
-      >
-        Continue with this patient
-      </button>
-    </div>
-  );
+export interface BookingDraft {
+  readonly patient: History | null;
+  readonly reason: string;
+  readonly acknowledged: boolean;
 }
-export function BookingDialog({
-  api,
-  doctors,
-  selection,
-  onClose,
-  onSaved,
-}: {
+interface BookingProps {
   api: ClinicApi;
   doctors: readonly Doctor[];
   selection: BookingSelection;
+  draft: BookingDraft | null;
   onClose: () => void;
+  onChooseSlot: (draft: BookingDraft) => void;
   onSaved: (message: string) => void;
-}) {
-  const [doctorId, setDoctorId] = useState(selection.doctorId);
-  const [date, setDate] = useState(selection.date);
-  const [startsAt, setStartsAt] = useState(selection.slot?.startsAt ?? "");
-  const [patient, setPatient] = useState<History | null>(null);
-  const [reason, setReason] = useState(selection.original?.reason ?? "");
-  const [acknowledged, setAcknowledged] = useState(false);
+  variant?: "drawer" | "dialog";
+}
+export function BookingDialog(props: BookingProps) {
+  const original = props.selection.original;
+  return original ? (
+    <MoveBooking {...props} original={original} />
+  ) : (
+    <BookingPanel {...props} />
+  );
+}
+function MoveBooking(props: BookingProps & { original: Appointment }) {
+  const { api, original } = props;
+  const [revision, setRevision] = useState(0);
+  const load = useCallback(
+    (signal: AbortSignal) => api.history(original.patientId, 0, signal),
+    [api, original.patientId],
+  );
+  const result = useResource(
+    load,
+    `${api.reviewNow}:${original.patientId}:${revision}`,
+  );
+  if (result.data)
+    return <BookingPanel {...props} existingPatient={result.data} />;
+  return (
+    <Modal
+      title="Confirm appointment move"
+      variant={props.variant ?? "drawer"}
+      onClose={props.onClose}
+    >
+      {result.loading ? (
+        <Loading text="Checking this patient’s current eligibility…" />
+      ) : (
+        <ErrorNotice
+          error={result.error}
+          retry={() => setRevision((n) => n + 1)}
+        />
+      )}
+    </Modal>
+  );
+}
+function BookingPanel({
+  api,
+  doctors,
+  selection,
+  draft,
+  existingPatient,
+  onClose,
+  onChooseSlot,
+  onSaved,
+  variant = "drawer",
+}: BookingProps & { existingPatient?: History }) {
+  const [patient, setPatient] = useState<History | null>(
+    existingPatient ?? draft?.patient ?? null,
+  );
+  const [reason, setReason] = useState(
+    draft?.reason ?? selection.original?.reason ?? "",
+  );
+  const [acknowledged, setAcknowledged] = useState(
+    draft?.acknowledged ?? false,
+  );
+  const [editReason, setEditReason] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [revision, setRevision] = useState(0);
-  const today = clinicDate(useClinicTime(api.reviewNow));
   const load = useCallback(
-    (signal: AbortSignal) => api.slots(doctorId, date, signal),
-    [api, doctorId, date],
+    (signal: AbortSignal) =>
+      api.slots(selection.doctorId, selection.date, signal),
+    [api, selection.doctorId, selection.date],
   );
   const slots = useResource(
     load,
-    `${api.reviewNow}:${doctorId}:${date}:${revision}`,
+    `${api.reviewNow}:${selection.doctorId}:${selection.date}:${revision}`,
   );
   const validSlot =
-    slots.data?.some((slot) => slot.startsAt === startsAt) ?? false;
+    slots.data?.some((slot) => slot.startsAt === selection.slot.startsAt) ??
+    false;
+  const needsDeposit =
+    !!patient?.deposit.required ||
+    (error instanceof ApiError && error.code === "DEPOSIT_REQUIRED");
+  const doctor = doctors.find((item) => item.id === selection.doctorId);
+  const oldDoctor = doctors.find(
+    (item) => item.id === selection.original?.doctorId,
+  );
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!patient || !validSlot) return;
+    if (
+      busy ||
+      !patient ||
+      !validSlot ||
+      !reason.trim() ||
+      (needsDeposit && !acknowledged)
+    )
+      return;
     setBusy(true);
     setError(null);
     const input = {
-      doctorId,
-      startsAt,
+      doctorId: selection.doctorId,
+      startsAt: selection.slot.startsAt,
       reason: reason.trim(),
       depositAcknowledged: acknowledged,
     };
@@ -121,168 +151,134 @@ export function BookingDialog({
   return (
     <Modal
       title={
-        selection.original ? "Reschedule appointment" : "Book an appointment"
+        selection.original ? "Confirm appointment move" : "Book an appointment"
       }
-      description="All appointment dates and times are in Asia/Kolkata (IST)."
+      description="Times shown in India Standard Time (IST)."
+      variant={variant}
       onClose={onClose}
       busy={busy}
     >
       <div className="stack">
-        <section className="form-section">
-          <div className="step-title">
-            <span>1</span>
-            <h3>Patient</h3>
-          </div>
-          {patient ? (
-            <div className="stack">
-              <PatientSummary history={patient} />
-              <DepositNotice history={patient} />
-              {!selection.original && (
-                <button
-                  type="button"
-                  className="text-button"
-                  disabled={busy}
-                  onClick={() => {
-                    setPatient(null);
-                    setAcknowledged(false);
-                  }}
-                >
-                  Change patient
-                </button>
-              )}
+        <section
+          className="slot-summary"
+          aria-label="Selected appointment slot"
+        >
+          {selection.original && (
+            <div className="previous-slot">
+              <span className="eyebrow">FROM</span>
+              <p>{oldDoctor?.name ?? "Original doctor"}</p>
+              <p>
+                {dateLabel(clinicDate(selection.original.startsAt))},{" "}
+                {time(selection.original.startsAt)}–
+                {time(selection.original.endsAt)} IST
+              </p>
             </div>
-          ) : selection.original ? (
-            <ExistingPatient
-              api={api}
-              id={selection.original.patientId}
-              onReady={setPatient}
-            />
-          ) : (
-            <PatientFinder
-              api={api}
-              onSelect={(history) => {
-                setPatient(history);
-                setAcknowledged(false);
-              }}
-            />
           )}
+          <span className="eyebrow">
+            {selection.original ? "TO" : "YOUR SELECTED SLOT"}
+          </span>
+          <h3>{doctor?.name ?? "Selected doctor"}</h3>
+          <p>{dateLabel(selection.date)}</p>
+          <strong>
+            {time(selection.slot.startsAt)}–{time(selection.slot.endsAt)} IST
+          </strong>
+          <button
+            type="button"
+            className="text-button"
+            disabled={busy}
+            onClick={() => onChooseSlot({ patient, reason, acknowledged })}
+          >
+            Choose another slot
+          </button>
         </section>
+        {slots.loading ? (
+          <Loading text="Checking selected slot…" />
+        ) : slots.error ? (
+          <ErrorNotice
+            error={slots.error}
+            retry={() => setRevision((n) => n + 1)}
+          />
+        ) : (
+          !validSlot && (
+            <div className="notice warning" role="status">
+              This slot is no longer available. Choose another slot; your
+              patient and reason will be kept.
+            </div>
+          )
+        )}
+        {patient ? (
+          <div className="stack">
+            <PatientSummary history={patient} />
+            {patient.deposit.required && <DepositNotice history={patient} />}
+            {!selection.original && (
+              <button
+                type="button"
+                className="text-button"
+                disabled={busy}
+                onClick={() => {
+                  setPatient(null);
+                  setAcknowledged(false);
+                }}
+              >
+                Change patient
+              </button>
+            )}
+          </div>
+        ) : (
+          <PatientFinder
+            api={api}
+            onSelect={(history) => {
+              setPatient(history);
+              setAcknowledged(false);
+            }}
+          />
+        )}
         <form onSubmit={(event) => void submit(event)} className="stack">
           {error !== null && <ErrorNotice error={error} />}
           <fieldset disabled={busy} className="stack">
-            <section className="form-section stack">
-              <div className="step-title">
-                <span>2</span>
-                <h3>Choose a valid slot</h3>
+            {selection.original && !editReason ? (
+              <div className="notice quiet">
+                <strong>Reason for visit</strong>
+                <p>{reason}</p>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => setEditReason(true)}
+                >
+                  Edit reason
+                </button>
               </div>
-              <div className="form-grid">
-                <label>
-                  Doctor
-                  <select
-                    value={doctorId}
-                    onChange={(e) => {
-                      setDoctorId(e.target.value);
-                      setStartsAt("");
-                    }}
-                  >
-                    {doctors
-                      .filter((doctor) => doctor.active)
-                      .map((doctor) => (
-                        <option value={doctor.id} key={doctor.id}>
-                          {doctor.name} · {doctor.slotMinutes} min
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <label>
-                  Appointment date
-                  <input
-                    required
-                    type="date"
-                    min={today}
-                    max={shiftDate(today, 60)}
-                    value={date}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setDate(e.target.value);
-                        setStartsAt("");
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-              {slots.loading ? (
-                <Loading text="Checking available slots…" />
-              ) : slots.error ? (
-                <ErrorNotice
-                  error={slots.error}
-                  retry={() => setRevision((n) => n + 1)}
-                />
-              ) : (
-                <label>
-                  Available time (IST)
-                  <select
-                    required
-                    value={validSlot ? startsAt : ""}
-                    onChange={(e) => setStartsAt(e.target.value)}
-                  >
-                    <option value="">
-                      {slots.data?.length
-                        ? "Select an available time"
-                        : "No free slots — choose another doctor or date"}
-                    </option>
-                    {slots.data?.map((slot) => (
-                      <option key={slot.startsAt} value={slot.startsAt}>
-                        {time(slot.startsAt)}–{time(slot.endsAt)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <small>
-                Slots are live snapshots. The clinic rechecks availability,
-                overlaps, daily limits and patient eligibility when you submit.
-              </small>
-            </section>
-            <section className="form-section stack">
-              <div className="step-title">
-                <span>3</span>
-                <h3>Visit details</h3>
-              </div>
+            ) : (
               <label>
                 Reason for visit
                 <textarea
                   required
                   maxLength={500}
-                  rows={3}
+                  rows={2}
                   placeholder="A brief reason for the appointment"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />
               </label>
+            )}
+            {needsDeposit && (
               <label className="check deposit-check">
                 <input
                   type="checkbox"
                   checked={acknowledged}
-                  required={patient?.deposit.required ?? false}
+                  required
                   onChange={(e) => setAcknowledged(e.target.checked)}
                 />
-                <span>
-                  Deposit acknowledged
-                  {patient?.deposit.required
-                    ? " (required for this patient)"
-                    : " (if applicable)"}
-                </span>
+                <span>Deposit acknowledged (required for this patient)</span>
               </label>
-              {selection.original && (
-                <p className="muted small-text">
-                  Rescheduling cancels the original and books the replacement
-                  together. A late cancellation may add a penalty and trigger a
-                  deposit requirement. If the new booking fails, the original
-                  stays unchanged.
-                </p>
-              )}
-            </section>
+            )}
+            {selection.original && (
+              <p className="muted small-text">
+                The original stays booked until you confirm this move. A move
+                within 2 hours of the original start counts as a late
+                cancellation and may require deposit acknowledgement.
+              </p>
+            )}
             <div className="modal-actions">
               <button
                 type="button"
@@ -298,13 +294,13 @@ export function BookingDialog({
                   !patient ||
                   !validSlot ||
                   !reason.trim() ||
-                  (!!patient.deposit.required && !acknowledged)
+                  (needsDeposit && !acknowledged)
                 }
               >
                 {busy
                   ? "Saving appointment…"
                   : selection.original
-                    ? "Confirm reschedule"
+                    ? "Confirm move"
                     : "Confirm booking"}
               </button>
             </div>

@@ -16,6 +16,9 @@ RUN npm run build
 # Explicit tooling image for migrations, seed, and isolated database tests.
 FROM build AS tooling
 COPY test ./test
+COPY scripts ./scripts
+COPY eslint.config.mjs .prettierrc ./
+RUN mkdir -p /app/coverage && chown node:node /app/coverage
 USER node
 CMD ["npm", "run", "prisma:deploy"]
 
