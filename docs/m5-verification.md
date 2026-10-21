@@ -85,3 +85,13 @@ completion date is invented for this work.
 Graphify's existing graph was consulted before source inspection. It predates
 the recent dashboard and M5 source changes and is marked stale; current source
 and test results take precedence. No graph refresh is claimed.
+
+## Subsequent M6 audit (2026-10-20)
+
+The user manually committed the M5 implementation and M4 follow-ups as `eff65d8`
+and the remote HEAD matches it. Statements above about uncommitted work describe
+the original M5 boundary. Full M5 remains incomplete: a fresh committed clone
+omits both intentionally ignored lockfiles and `docker-compose.verify.yml`;
+hosting/anonymous CI evidence is unavailable. The pre-existing untracked Compose
+file and UI readiness change are preserved for the eventual reviewed commit.
+See [M6 verification](m6-verification.md) for current packaging/release status.

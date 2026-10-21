@@ -6,6 +6,7 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "docs:check": "node scripts/check-docs.mjs",
     "setup": "npm ci --prefix backend && npm ci --prefix frontend",
     "dev": "node scripts/local.mjs",
     "dev:seed": "node scripts/local.mjs --seed",

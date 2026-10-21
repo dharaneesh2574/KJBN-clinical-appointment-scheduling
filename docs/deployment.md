@@ -52,9 +52,12 @@ No test targets public hosting or the persistent local clinic database.
 `.github/workflows/verify.yml` runs the coverage gate on main/codex branch pushes,
 pull requests to main, and manual workflow dispatch. It uses Node 24, installs
 Chromium with Linux dependencies, and grants only repository read permission.
+CI also runs `npm run docs:check` and fetches complete milestone history.
 CI has no deployment credentials or production database access. A local pass
 does not prove a GitHub Actions run occurred; verify its first remote run after
-the user manually commits and pushes.
+the user manually commits and pushes the complete package. `eff65d8` is now
+pushed, but public CI access is unverified and its package omits the app lockfiles
+and verification Compose file. See [M6 evidence](m6-verification.md).
 
 ## Health and startup behavior
 

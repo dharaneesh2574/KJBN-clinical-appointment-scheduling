@@ -1,4 +1,4 @@
-M5 combined coverage — 2026-10-20
+M5 combined coverage; M6 candidate re-verification — 2026-10-20
 Command (repository root): npm run coverage
 Underlying backend command: npm run test:cov:all
 Root command creates isolated PostgreSQL; no hosted/clinic DB is used.
@@ -31,4 +31,8 @@ request logging, configuration and persistence adapters remain in the denominato
 Unit-only coverage does not instrument HTTP/DB suites; it is not the final overall figure.
 The combined command enforces >=80% global metrics plus scoped business thresholds.
 Generated coverage/ reports are ignored; this sanitized snapshot is reviewable.
-Evidence: docs/m5-verification.md; M3 baseline: docs/m3-verification.md.
+Evidence: docs/m5-verification.md; M6 fresh candidate: docs/m6-verification.md.
+M6 Node 24.19.0 run reproduces every count above after fresh npm ci installs.
+It temporarily includes existing ignored lockfiles; committed eff65d8 clone fails
+without them and the verification Compose file. No hosted result is implied.
+M3 baseline: docs/m3-verification.md.

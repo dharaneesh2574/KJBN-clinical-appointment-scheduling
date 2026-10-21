@@ -1,0 +1,53 @@
+# Only the fixed kjbn-clinic-verify project is ever removed by scripts/verify.mjs.
+name: kjbn-clinic-verify
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: kjbn_test
+      POSTGRES_PASSWORD: fictional_verification_only
+      POSTGRES_DB: kjbn_test_verify
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kjbn_test -d kjbn_test_verify"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  tests:
+    build:
+      context: ./backend
+      target: tooling
+    environment:
+      TEST_DATABASE_URL: postgresql://kjbn_test:fictional_verification_only@db:5432/kjbn_test_verify
+      NODE_ENV: test
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npm", "run", "test:all"]
+  api:
+    build:
+      context: ./backend
+      target: tooling
+    environment:
+      DATABASE_URL: postgresql://kjbn_test:fictional_verification_only@db:5432/kjbn_test_verify
+      NODE_ENV: production
+      PORT: 3000
+      CORS_ORIGINS: http://127.0.0.1:4173
+      REVIEW_MODE: "false"
+      SEED_DEMO_DATA: "true"
+    command: ["node", "scripts/start-hosted.mjs"]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 4s
+      retries: 30

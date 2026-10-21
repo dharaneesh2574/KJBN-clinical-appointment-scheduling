@@ -7,11 +7,19 @@ the verified M3 JSON API.
 
 ## 2. Live links
 
-No public deployment yet. Local container UI: http://localhost:8080; Vite UI:
-http://localhost:5173; API: http://localhost:3000;
-[Swagger UI](http://localhost:3000/docs) and [OpenAPI JSON](http://localhost:3000/docs-json).
-The M4 UI calls the real API. Rebuild changed services after source edits; hosted
-URLs and cold-start measurements remain M5.
+| Resource | URL / verification status |
+| --- | --- |
+| Container UI | [localhost:8080](http://localhost:8080) — locally verified |
+| Native Vite UI | [localhost:5173](http://localhost:5173) — start separately |
+| Local API | [localhost:3000](http://localhost:3000) |
+| Swagger / OpenAPI | [Swagger UI](http://localhost:3000/docs) · [OpenAPI JSON](http://localhost:3000/docs-json) |
+| Health | [Liveness](http://localhost:3000/health/live) · [Readiness](http://localhost:3000/health/ready) |
+| Public UI/API | Not deployed/verified; no hosted URL is claimed |
+| Repository | [GitHub remote](https://github.com/dharaneesh2574/KJBN-clinical-appointment-scheduling) — remote HEAD `eff65d8`; anonymous visibility/CI access unverified |
+
+No test credentials are needed because authentication is optional and absent.
+Use only fictional data in the reviewer demo. Actual hosted cold-start timing is
+unmeasured; see [deployment](docs/deployment.md) and [release evidence](docs/m6-verification.md).
 
 ## 3. Tech stack
 
@@ -62,7 +70,9 @@ chips, then confirm; success opens the booked day. Schedule retains grid/move fl
 
 ## 5. Running locally
 
-Prerequisites: Node.js 24 LTS, npm, PostgreSQL, and (for containers) Docker Compose v2.
+Prerequisites: Node.js 24 LTS and npm; Docker Compose v2 for containers/tests.
+Native development additionally needs PostgreSQL 17 with `btree_gist`. Container
+startup needs no separate host PostgreSQL installation.
 
 ### Containers (from the project root)
 
@@ -139,11 +149,11 @@ The suite applies migrations and removes only its own test fixtures.
 
 ## 5a. Deployment
 
-Public deployment is pending account access. [Render configuration](render.yaml)
+The implementation is committed as `eff65d8`; public deployment is pending account access. [Render configuration](render.yaml)
 prepares a free Node API, static UI and PostgreSQL 17 database; the
 [deployment runbook](docs/deployment.md) contains exact dashboard/env/CORS steps,
 redeploy/re-seed instructions and failure recovery. The CLI currently reports
-`unauthorized`; no public URL, hosted test pass or remote CI run is claimed.
+`unauthorized`; no public URL, hosted test pass or successful remote CI run is claimed.
 
 `npm run dev:seed` provides one-command local startup. Hosted startup applies
 committed Prisma migrations, explicitly ensures the fictional seed when
@@ -174,6 +184,10 @@ After frontend installation and Chromium setup below, run from the root:
 npm test
 npm run coverage
 ```
+
+`npm run docs:check` separately verifies required documentation structure, word
+limits, local links, milestone hashes, rubric and prompt order. The
+[reviewer checklist](docs/reviewer-checklist.md) lists pending hosted checks.
 
 These commands build/lint and run every required backend, real-PostgreSQL,
 operational readiness and browser suite against explicitly disposable projects.
@@ -250,8 +264,8 @@ uses real HTTP fixtures and runs the UI at 127.0.0.1:4173 against test API port
 3011, then tears down only that test stack. These ports must be free. An existing
 Chrome binary can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`; otherwise
 install Chromium with the command above. Reports/traces/screenshots are ignored.
-M4 passed 214 backend cases and 27 browser cases; M5 adds four backend health
-cases. The root gate now combines these suites and operational checks.
+M4 passed 214 backend cases and 27 browser cases; M5 adds four health/API cases
+and two seed-preservation regressions. The root gate now combines these suites and operational checks.
 See [M4 evidence](docs/m4-verification.md).
 
 ## 7. API overview
@@ -476,25 +490,33 @@ Schedule edits conservatively protect historical occupied rows; use future date
 overrides when weekly edits would invalidate immutable history. The retained `/`
 smoke route is liveness only. Review-mode time is intentional request-local testing;
 normal-mode DOB/horizon decisions use real request arrival time. Status and evidence
-are recorded in `AGENTS.md`, `SUBMISSION.md`, and the M3/M4 verification notes.
+are recorded in `AGENTS.md`, `SUBMISSION.md`, and the milestone verification notes.
+The M5 implementation and M4 follow-ups are in `eff65d8`; M5 remains incomplete
+without hosted evidence. [M6 evidence](docs/m6-verification.md) records the failed
+committed clean clone, candidate packaging checks and targeted repository audit.
+The final `v1.0` tag must identify the verified user-created final commit.
 
 Both application npm lockfiles are intentionally ignored while local copies
 exist. Current `npm ci`, Docker, CI and hosting builds require them. A request to
-restore their trackability is pending; no clean-clone pass is claimed. The index
-is left unchanged and all checks use the existing on-disk lockfiles.
+restore their trackability is pending. A fresh clone of `eff65d8` fails npm ci
+and lacks `docker-compose.verify.yml`; no published clean-clone pass is claimed.
+Candidate checks that temporarily include lockfiles are explicitly distinguished
+from committed-clone evidence. The Git index is unchanged.
 
 ## 12. AI and third-party usage
 
 OpenAI Codex assisted with scaffolding, configuration, domain modeling, business
 policies, API/UI implementation/tests, documentation, local containers and M5
-health/CI/hosting preparation. M5 primary references are in the deployment runbook. React/Vite
+health/CI/hosting preparation, plus M6 documentation/checking. The user reviews
+and commits changes; AI assistance does not establish hosted/release completion.
+M5 primary references are in the deployment runbook. React/Vite
 and NestJS scaffolds remain; M4 replaces the visible frontend starter. M3 adds compatible Nest Swagger 11,
 class-validator and class-transformer; versions are governed by manifests/lockfiles.
 Official Nest documentation informed validation, request scopes and OpenAPI setup;
 references and design costs are in [M3 evidence](docs/m3-verification.md).
 M4 adds Playwright with real-API browser fixtures; the UI uses native controls and
-CSS/SVG, without an external design template, icon package or image-generation
-service. Official React/Playwright references are in [M4 evidence](docs/m4-verification.md).
+CSS/SVG and MIT Phosphor icons for the dashboard. No source photos/branding or
+image-generated production assets are embedded. Official React/Playwright references are in [M4 evidence](docs/m4-verification.md).
 See [PROMPTS.md](PROMPTS.md) for chronological requests and use notes.
 
 Dashboard visual references: [Nasim’s Doctor Appointment Booking](https://dribbble.com/shots/27618363-Doctor-Appointment-Booking) and the user-supplied picker image; adapted to the existing clinic theme. New icons use [Phosphor React](https://github.com/phosphor-icons/react), version 2.1.10, MIT. Source photos/branding are not embedded. See [design QA](design-qa.md).

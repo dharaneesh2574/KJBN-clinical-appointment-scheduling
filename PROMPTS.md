@@ -150,6 +150,13 @@ context. No unavailable prompts or tool results are invented.
   regenerate the graph/report/HTML as needed, and retain integrity warnings.
   Application code and Git staging/commits are outside this request.
 
+### Non-implementation exchange between requests 10 and 11
+
+- Tool: OpenAI Codex desktop.
+- User message (verbatim): `hi`
+- Use note: Greeting only; no implementation requested. Its separate timestamp
+  and assistant response are not retained here, so neither is invented.
+
 ## 11. Implement M3 API
 
 - Date: 2026-10-20 (Asia/Kolkata).
@@ -273,7 +280,8 @@ which prompts patient and doctor and once the doctor is selected then the availa
   status filters; restore the main booking button to a modal with patient/doctor
   selection and visual date/availability chips. Retain the clinic theme and the
   existing safe booking/move API workflows. User approved running the existing
-  Playwright suite after Product Design's browser-tool permission question.
+  Playwright suite after Product Design's browser-tool permission question;
+  the recorded answer was `Yes, run the browser tests`.
   Preserve all pre-existing unstaged changes; do not stage/commit/push.
 - Verified outcome: default date/status dashboard, right-side calendar and a
   patient/doctor → visual date/time → review booking modal are implemented against
@@ -305,3 +313,26 @@ which prompts patient and doctor and once the doctor is selected then the availa
   browser tests. Public deployment/remote CI remain unverified because Render
   authentication/workspace and lockfile preference are pending. M5 stays
   incomplete; all work remains unstaged/uncommitted.
+
+## 19. Complete M6 documentation and submission verification
+
+- Date: 2026-10-20
+- Tool: OpenAI Codex desktop; graphify; Git; Node.js; Docker.
+- Prompt (verbatim): `complete the m6 milestone`
+- Use note: Check preceding gates, finalize required README/SUBMISSION formats,
+  prompt disclosure and coverage evidence; verify a clean checkout, links and
+  repository hygiene. Preserve existing Compose changes, use actual commit
+  history, and leave all edits unstaged/uncommitted. Do not tag a revision that
+  lacks the final files or claim unavailable hosted checks have passed.
+- Verified outcome: root/app README and concise 860-word submission finalized;
+  exact-format/local-link/hash/prompt/rubric checker added to CI, which fetches
+  full history. Actual `eff65d8` implementation commit is recorded without claiming
+  hosted completion. Fresh committed clone fails due to ignored lockfiles/missing
+  verification Compose. A separate candidate with temporary lockfile copies passes
+  fresh Node 24.19.0 installs, 220 backend + 27 browser cases, exact coverage counts
+  and isolated env-init/migrate/seed/production UI/API/CORS startup. Original clinic
+  remains separate. All 49 local links exist; 18 external links return 200,
+  Dribbble 202, GitHub 404 anonymously. Targeted audit of 177 tracked paths and
+  344 reachable blobs finds no checked credential/generated-path patterns.
+  Hosted checks, public/CI access, final committed clone and v1.0 remain pending;
+  ignore preference/index/history are preserved and no stage/commit/push/tag occurs.
