@@ -4,8 +4,9 @@ Problem 2 is a two-doctor clinic scheduler using React/TypeScript, NestJS,
 PostgreSQL and Prisma. It implements R1–R7, appointment booking/rescheduling,
 patient history/flags, availability management and today's queue through the real
 API. Local verification passes 220 backend and 27 browser tests, with 97.47%
-overall backend line coverage and 97.91% business-code line coverage. Public
-hosting and release verification remain incomplete; see [M6 evidence](docs/m6-verification.md).
+overall backend line coverage and 97.91% business-code line coverage. The
+[seeded VM UI/API](http://35.244.38.53/) is deployed; final release verification
+remains incomplete ([VM evidence](docs/vm-deployment.md), [M6 evidence](docs/m6-verification.md)).
 
 ## B. Three design decisions
 
@@ -38,15 +39,19 @@ hosting and release verification remain incomplete; see [M6 evidence](docs/m6-ve
 
 ## C. The hardest part
 
-Protecting atomic changes across PostgreSQL and UI races required evidence,
-not just preflight checks. M2 (`ecdbbe0`) introduced protected transactions;
-M3 (`f07683a`) verified actual HTTP failures and rollback. M4 (`9197ec5`)
-addressed mobile layout and dialog focus; dashboard/calendar follow-ups landed
-in `eff65d8`. That M5 implementation also exposed a seed failure after availability
-windows acquired new IDs. A real-database regression reproduced it. Initializing
-availability only for newly created seed doctors preserves edited hours, closed
-days and overrides on re-seed. Both seed regressions and database outage/recovery
-checks pass. `eff65d8` records implementation, not proof of public deployment.
+The hardest part was deciding what should happen to existing appointments when
+a doctor changes availability. Automatically assigning replacement slots seems
+convenient, but an available slot does not mean the patient can attend. I chose
+to keep the clinic attendant in control: discuss available dates with the patient
+and confirm a suitable time before rescheduling.
+
+The implementation supports this decision by rejecting availability changes that
+invalidate occupied appointments and returning the affected appointment IDs
+(M2: `ecdbbe0`; M3: `f07683a`). The attendant must resolve these conflicts before
+applying the schedule change. Each reschedule is atomic: an invalid replacement
+leaves the original booking untouched. The system never silently moves or
+cancels patient appointments. Patient contact and agreement happen outside the
+application; automated notifications and consent tracking are not implemented.
 
 ## D. How I handle failure
 
@@ -68,14 +73,14 @@ slots and requires confirmation; it never retries a write automatically.
 | M2 | Verified 2026-10-20 | `ecdbbe0` |
 | M3 | Verified 2026-10-20 | `f07683a` |
 | M4 | Verified 2026-10-20 | `9197ec5`; follow-ups in `eff65d8` |
-| M5 | Local gates 2026-10-20; packaging reverified 2026-10-22; public gate incomplete | `eff65d8`; packaging pending manual commit |
+| M5 | Local gates 2026-10-20; VM deployed/seeded 2026-10-22; full release checks pending | `eff65d8`; VM source `c199607`; deployment files pending manual commit |
 | M6 | Local docs verified 2026-10-20; release gate incomplete | Pending manual commit |
 
 ## F. If I had two more days
 
-1. Resolve lockfile packaging so fresh clones and CI reproduce installation.
-2. Deploy the seeded services and confirm review availability before database expiry.
-3. Verify hosted boundaries and CI to establish release evidence.
+1. Complete the hosted R1–R7 boundary matrix to establish release evidence.
+2. Add a domain, TLS and off-VM backups for the running demo.
+3. Confirm current remote CI and review availability for the submission period.
 4. Extend browser/accessibility checks to catch untested device regressions.
 5. Repeat the final committed clone so the release tag identifies reproducible code.
 
@@ -93,6 +98,6 @@ Provisional scores reflect verified local behavior.
 | API design | 8 | 4 | Validated core routes, pagination and OpenAPI |
 | UI usability | 6 | 4 | Real flows, IST, responsive and keyboard checks |
 | Testing | 7 | 4 | 220 backend/27 browser; business lines 97.91% |
-| Deployment and operability | 5 | 3 | Local recovery passes; public deployment pending |
+| Deployment and operability | 5 | 3 | Seeded VM live; full hosted release matrix pending |
 | Git hygiene | 4 | 3 | Actual history retained; release packaging pending |
 | Documentation and write-up | 4 | 4 | Required structure, disclosure and qualified evidence |

@@ -7,26 +7,18 @@ the verified M3 JSON API.
 
 ## 2. Live links
 
-| Resource | URL / verification status |
+| Resource | Link |
 | --- | --- |
-| Container UI | [localhost:8080](http://localhost:8080) — locally verified |
-| Native Vite UI | [localhost:5173](http://localhost:5173) — start separately |
-| Local API | [localhost:3000](http://localhost:3000) |
-| Swagger / OpenAPI | [Swagger UI](http://localhost:3000/docs) · [OpenAPI JSON](http://localhost:3000/docs-json) |
-| Health | [Liveness](http://localhost:3000/health/live) · [Readiness](http://localhost:3000/health/ready) |
-| Public UI/API | Not deployed/verified; no hosted URL is claimed |
-| Repository | [GitHub remote](https://github.com/dharaneesh2574/KJBN-clinical-appointment-scheduling) — remote HEAD `eff65d8`; anonymous visibility/CI access unverified |
-
-No test credentials are needed because authentication is optional and absent.
-Use only fictional data in the reviewer demo. Actual hosted cold-start timing is
-unmeasured; see [deployment](docs/deployment.md) and [release evidence](docs/m6-verification.md).
+| Live UI | [Open application](http://35.244.38.53/) |
+| Live API | [Open API](http://35.244.38.53:3000/) |
+| API documentation | [Swagger UI](http://35.244.38.53:3000/docs/) |
 
 ## 3. Tech stack
 
 TypeScript, React 19/Vite, NestJS 11, Prisma ORM 7, PostgreSQL, npm lockfiles.
 Use Node.js 24 LTS and npm. PostgreSQL stores instants with timezone and local
-calendar concepts separately. A free Render Blueprint is prepared; public
-deployment/account access remain pending.
+calendar concepts separately. Deployment uses a Linux VM, Docker Compose and
+Docker Hub images. The prepared free Render Blueprint remains an alternative.
 
 ## 4. Architecture
 
@@ -152,11 +144,14 @@ The suite applies migrations and removes only its own test fixtures.
 
 ## 5a. Deployment
 
-The implementation is committed as `eff65d8`; public deployment is pending account access. [Render configuration](render.yaml)
-prepares a free Node API, static UI and PostgreSQL 17 database; the
-[deployment runbook](docs/deployment.md) contains exact dashboard/env/CORS steps,
-redeploy/re-seed instructions and failure recovery. The CLI currently reports
-`unauthorized`; no public URL, hosted test pass or successful remote CI run is claimed.
+The user-selected VM is deployed at [35.244.38.53](http://35.244.38.53/) using
+[registry-only Compose](deploy/vm/docker-compose.yml). Configuration and all
+application persistent volumes live under `~/kjbn` on the VM; PostgreSQL uses
+`./data/postgres`. [VM deployment evidence](docs/vm-deployment.md) records pinned
+image digests, private environment setup, seed, checks and redeploy commands.
+The existing [Render configuration](render.yaml) and [runbook](docs/deployment.md)
+remain an alternative; no Render service was created. Full hosted edge-case and
+final release verification remain separate gates.
 
 `npm run dev:seed` provides one-command local startup. Hosted startup applies
 committed Prisma migrations, explicitly ensures the fictional seed when
@@ -177,9 +172,10 @@ take about a minute); free PostgreSQL expires after 30 days with no backups.
 Confirm expiry covers review before deployment. These are provider terms, not
 measured application cold-start results. [Official limits](https://render.com/docs/free).
 
-The app images are built/tagged locally, not published to Docker Hub. Publishing
-can be performed separately after `docker login` with
-`docker compose push frontend backend`; base PostgreSQL/nginx images remain upstream images.
+The AMD64 app images are published to Docker Hub as
+`dharaneesh2574/kjbn-backend:vm-20261022-swagger` and
+`dharaneesh2574/kjbn-frontend:vm-20261022-c199607`. The VM pins their digests;
+base PostgreSQL/nginx images remain upstream images.
 Do not use the local example credentials for a hosted deployment.
 
 ## 6. Running tests and coverage
@@ -485,10 +481,10 @@ history untouched. `/docs` provides executable request schemas for all operation
 ## 11. Known limitations
 
 M4 is verified locally in Chrome, including phone widths; other browser/device
-coverage and a full accessibility audit remain unverified. Public hosting, first
-successful remote CI execution, hosted edge-case checks, clean-clone final verification and
-submission tagging remain M5/M6. CI configuration and local database readiness
-are implemented; hosting authentication and a manual commit of the prepared lockfiles are pending. Authentication
+coverage and a full accessibility audit remain unverified. The VM UI/API and
+fresh seeded database are live; the complete hosted edge-case matrix, current
+remote CI result, clean-clone final verification and submission tagging remain
+M5/M6 release checks. Authentication
 is optional and not implemented. No stretch features have started.
 
 The clinic-wide write lock favors understandable correctness over throughput.
@@ -497,13 +493,14 @@ overrides when weekly edits would invalidate immutable history. The retained `/`
 smoke route is liveness only. Review-mode time is intentional request-local testing;
 normal-mode DOB/horizon decisions use real request arrival time. Status and evidence
 are recorded in `AGENTS.md`, `SUBMISSION.md`, and the milestone verification notes.
-The M5 implementation and M4 follow-ups are in `eff65d8`; M5 remains incomplete
-without hosted evidence. [M6 evidence](docs/m6-verification.md) records the failed
+The M5 implementation and M4 follow-ups are in `eff65d8`; the VM uses application
+source at `c199607`. [VM evidence](docs/vm-deployment.md) records this deployment;
+full M5/M6 release gates remain pending. [M6 evidence](docs/m6-verification.md) records the historical failed
 committed clean clone, candidate packaging checks and targeted repository audit.
 The final `v1.0` tag must identify the verified user-created final commit.
 
-Both application npm lockfiles are now trackable and must be included in the next
-manual commit. Current `npm ci`, Docker, CI and hosting builds require them. The
+Both application npm lockfiles and verification Compose are tracked at the current
+local deployment source `c199607`. `npm ci`, Docker, CI and hosting builds require them. The
 two Actions runs through `0bd2f22` failed before tests at dependency-cache setup
 because the frontend lockfile was missing. A fresh clone of historical `eff65d8`
 fails npm ci and lacks `docker-compose.verify.yml`; no published clean-clone pass is claimed.

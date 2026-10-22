@@ -427,3 +427,81 @@ which prompts patient and doctor and once the doctor is selected then the availa
   lint, startup/restart and database outage/recovery checks also pass. Disposable
   test stacks were removed. No documentation checker was run and no files were
   staged, committed or pushed.
+
+## 24. Deploy the application to the user's VM
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; local Docker/Buildx; SSH/SCP using the
+  user's existing local SSH identity.
+- Prompt (verbatim):
+  ```text
+  to deploy the application in a vm
+  ssh into the instance
+  in the home directory i have kjbn folder in that folder create a docker compose file
+  and run the kjbn frontend backend and fresh db with seed db in that the volumes everything should be in the same directory
+  use the the local ssh credentials
+  and make sure that frontend and backend containers are pushed to the docker registry
+  the instance is already authenticated to the docker registry
+  ssh -i /Users/dharaneeshnatarajan/.ssh/id_ed25519 dharaneeshnatarajan2574@35.244.38.53
+  ```
+- Use note: Complete M5's authorized VM deployment with published AMD64 images,
+  a fresh migrated/seeded database and bind-mounted data under `~/kjbn`.
+  Keep credentials private; preserve existing unrelated services and local data.
+- Outcome: Published both AMD64 images to Docker Hub and deployed digest-pinned
+  services under `~/kjbn`. Both migrations and explicit seed pass; all three
+  containers are healthy. Public HTTP checks pass (21 requests); the packaged
+  backend passes 113 unit/acceptance plus 4 mocked HTTP cases in a network-isolated
+  VM container. Re-seed and full container recreation preserve all seven domain
+  table fingerprints; recreation takes 17.10 seconds. See `docs/vm-deployment.md`.
+  Changes remain unstaged/uncommitted for manual review; full hosted release
+  matrix/CI/final-clone/tag gates remain separate.
+
+## 25. Check VM Swagger accessibility
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; HTTP checks.
+- Prompt (verbatim): `is swagger accessible form the vm`
+- Use note: Recheck public Swagger and OpenAPI URLs.
+- Outcome: `/api/docs/` and `/api/docs-json` both return HTTP 200 from the VM public IP. Prompt log remains unstaged/uncommitted.
+
+## 27. Expose the VM backend directly for Swagger
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; diagnosing-bugs; SSH; HTTP/browser checks.
+- Prompt (verbatim):
+  ```text
+  the swagger cant access the api
+  because we adde cors in backend
+  I need the backend to be directly accessible
+  ```
+- Use note: Reproduce the failed Swagger target, expose backend port 3000 and
+  retain explicit allowed origins; verify actual Swagger execution.
+- Diagnosis: Public direct port 3000 refuses connections with the loopback-only
+  mapping. Proxied OpenAPI has no `servers` entry, so root API paths resolve on
+  frontend port 80 (`/doctors` returns HTML; `/api/doctors` returns JSON).
+- Outcome: Backend and Swagger now accessible directly on port 3000; exact frontend/backend CORS origins pass. Browser execution additionally exposed incorrect object schemas for pagination. Added integer metadata and a generated-OpenAPI regression (observed failing, then passing). Published/deployed `vm-20261022-swagger` at digest `sha256:d18981918fe6e8c25c53eef79b36cc9a0a51d99898af7f9a4dc019cbeadc7d91`. Browser "Try it out" returns HTTP 200 with both doctors. Eleven public HTTP checks, six pagination schemas, 113 unit/acceptance cases, five HTTP cases, targeted lint and the image build pass. DB retained; no Git staging/commit/push.
+
+## 28. Keep README live links public only
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; local Markdown editing.
+- Prompt: `in [README.md](README.md) only have public urls in the section 2 no local`
+- Use note: Remove the localhost UI, API, Swagger and health rows from section 2.
+- Outcome: Section 2 retains only public runtime/repository URLs. Verified no
+  localhost or loopback URLs remain there; changes are unstaged/uncommitted.
+
+## 31. Simplify README live links
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; Markdown editing.
+- Prompt (verbatim): `in the readme section 2 only have these links except github have a polished and simple section`
+- Use note: Keep only the live UI, direct API and Swagger links from the email draft in a simple table.
+- Outcome: Removed GitHub, health/schema links and status prose from section 2. Verified exactly three requested URLs; changes remain unstaged/uncommitted.
+
+## 32. Explain the doctor availability decision in the hardest-part section
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; targeted source verification; Markdown editing.
+- Prompt (verbatim): `in [SUBMISSION.md](SUBMISSION.md) Change the existing section so that we can add, the hardest part is deciding whether the doctor's schedule, I mean doctor reschedules, should we automatically reschedule the patients, or do we actually manually tell the patient, mean the attendant, when the availability dates and confirm with the patient before rescheduling their doctor's schedule.`
+- Use note: Replace section C with the tradeoff between automatic moves and attendant-led rescheduling after patient confirmation; distinguish implemented safeguards from manual contact.
+- Outcome: Section C describes conflict rejection, affected appointment IDs and atomic explicit rescheduling, with existing M2/M3 hashes. Contact/confirmation remain outside the app; notifications/consent tracking are not claimed. Verified the section stays within 150 words. Documentation-only changes remain unstaged/uncommitted.

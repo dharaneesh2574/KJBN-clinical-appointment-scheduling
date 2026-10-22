@@ -92,11 +92,18 @@ block subsequent work the user has authorized.
   integration tests). M3 now exposes the core API with DTOs/errors/logging/request
   clocks/OpenAPI: 113 unit/acceptance + 1 smoke + 100 real-DB tests (70 API cases).
   M4 adds 27 passing real-API Playwright cases, responsive flows and doctor/hours
-  management. See `docs/m3-verification.md` and `docs/m4-verification.md`; hosting remains pending.
+  management. See `docs/m3-verification.md` and `docs/m4-verification.md`. The user-selected VM is deployed/seeded on 2026-10-22; see `docs/vm-deployment.md` for live URLs, image digests and persistence checks.
+
+VM follow-up 2026-10-22: backend is public on `http://35.244.38.53:3000`;
+use `/docs/` there for Swagger execution. Explicit frontend/backend CORS origins
+remain enforced. Corrected pagination OpenAPI schemas and regression test are
+in the published `vm-20261022-swagger` backend image (digest in VM runbook);
+113 unit/acceptance + five HTTP cases and live Swagger execution pass. Changes
+await manual commit; existing graph output predates this follow-up.
 
 CI runs tests and coverage only, per the user's 2026-10-22 decision. Documentation
-validation is an optional manual command. Both existing app lockfiles are now
-trackable and must be included in the next manual commit: remote runs through
+validation is an optional manual command. Both existing app lockfiles and verification
+Compose are tracked at the current local deployment source `c199607`. Remote runs through
 `0bd2f22` failed at Node dependency-cache setup before any tests because the
 frontend lockfile was missing from Git.
 
@@ -353,8 +360,8 @@ evidence in SUBMISSION.md. Never invent history or retroactively relabel old com
 | M2 — Business rules | Testable use cases/policies; all core rules pass; atomic rescheduling and real PostgreSQL concurrency evidence; boundary tests. HTTP not required yet. | Verified 2026-10-20: 99 unit/acceptance + 1 HTTP smoke + 30 real-DB tests; 96.76% business-code line coverage. `ecdbbe0` (actual manual commit); see `docs/m2-verification.md`. |
 | M3 — API | Core endpoints; DTO validation; consistent errors; structured request logging; request clock; OpenAPI; passing API tests. | Verified 2026-10-20: 214 tests including 70 real-DB API cases; combined lines 97.48% overall / 97.91% business. `f07683a` (actual manual commit); see `docs/m3-verification.md`. |
 | M4 — UI | All required flows call the local API; IST display; loading/error/empty states; flags explained; usable at laptop and phone widths. | Verified 2026-10-20: initial 18 real-API Playwright cases, then 27 with loaded-hours, calendar interaction and dashboard/modal coverage; 375/320px phone and 1440px desktop; strict build/lint and preceding 214 backend tests pass. `9197ec5` (actual manual commit); weekly-payload, calendar interaction and dashboard/modal follow-ups verified and included in `eff65d8`; see `docs/m4-verification.md`. |
-| M5 — Deployment | Service Dockerfiles/build specs; one-command local backend + DB + UI; provider config; migrate-and-seed script; live seeded UI/API; CORS; health endpoint; CI tests. | Local gates verified 2026-10-20: one-command stack, health/readiness with DB outage/recovery, hosted migration/seed launcher, 220 backend + 27 browser cases, 97.47% overall / 97.91% business lines; CI workflow and schema-validated Render Blueprint prepared. Implementation recorded in `eff65d8`; public deployment/remote CI and lockfile reconciliation pending; milestone incomplete. Verification Compose remains untracked and must be included in the final reviewed commit. Single-backend-image packaging reverified 2026-10-22 with all 220 backend and 27 browser cases passing; pending manual commit. See `docs/m5-verification.md`. |
-| M6 — Documentation | Exact README/SUBMISSION formats; prompt log and disclosure; committed coverage summary; clean-clone/hosted edge-case verification; final `v1.0` tag. | Local documentation verified 2026-10-20: exact formats/checker, prompt disclosure, hashes, reviewer matrix, audit and links. Fresh Node 24 candidate installs, 220 backend + 27 browser cases, coverage and isolated one-command startup pass using temporary lockfile copies. `eff65d8` clean clone fails missing lockfiles/verification Compose; hosted checks, public/CI evidence, final committed clone and tag pending. See `docs/m6-verification.md`. |
+| M5 — Deployment | Service Dockerfiles/build specs; one-command local backend + DB + UI; provider config; migrate-and-seed script; live seeded UI/API; CORS; health endpoint; CI tests. | Local gates verified 2026-10-20: one-command stack, health/readiness with DB outage/recovery, hosted migration/seed launcher, 220 backend + 27 browser cases, 97.47% overall / 97.91% business lines; CI workflow and schema-validated Render Blueprint prepared. Implementation recorded in `eff65d8`; lockfiles and verification Compose are tracked at `c199607`. Full release gates remain incomplete. Single-backend-image packaging reverified 2026-10-22 with all 220 backend and 27 browser cases passing. VM deployed/seeded 2026-10-22 from application source `c199607`: published AMD64 images, 21 public HTTP checks, 113 unit/acceptance + 4 mocked HTTP tests and seven-table seed/recreation preservation pass. Deployment configuration pending manual commit; full hosted matrix/current remote CI remain unverified. See `docs/m5-verification.md` and `docs/vm-deployment.md`. |
+| M6 — Documentation | Exact README/SUBMISSION formats; prompt log and disclosure; committed coverage summary; clean-clone/hosted edge-case verification; final `v1.0` tag. | Local documentation verified 2026-10-20: exact formats/checker, prompt disclosure, hashes, reviewer matrix, audit and links. Fresh Node 24 candidate installs, 220 backend + 27 browser cases, coverage and isolated one-command startup pass using temporary lockfile copies. Historical `eff65d8` clone fails missing lockfiles/verification Compose; `c199607` tracks these files. Basic VM hosting verified 2026-10-22; full hosted checks, current CI evidence, final committed clone and tag pending. See `docs/m6-verification.md`. |
 
 The user creates milestone commits manually, naming `[M0]` through `[M6]`.
 For those commits, use Conventional Commits: `type(scope): [Mx] imperative subject`, at most 72
@@ -381,8 +388,9 @@ secrets, or real patient data.
 | D10 | Root `PROMPTS.md` with every AI request in order, tool name, and one-line use/edit/rejection note |
 
 CI is strongly recommended in the deliverable wording and included in the M5 exit
-gate. A free Render Blueprint is the prepared default; provider preference/account
-access and live deployment remain pending. Terms checked 2026-10-20 include a
+gate. The user selected the VM at `35.244.38.53`; live UI/API and seeded PostgreSQL
+were deployed on 2026-10-22 under `~/kjbn`. See `docs/vm-deployment.md`.
+A free Render Blueprint remains a prepared alternative. Terms checked 2026-10-20 include a
 30-day free PostgreSQL expiry. See `docs/deployment.md` for setup and re-seeding.
 
 README headings, in this exact order (retain the unusual `5a` numbering):
@@ -430,8 +438,9 @@ must be understood and explainable; disclose AI and third-party usage.
 
 Before final submission, verify every listed edge case against the hosted version,
 run setup from a clean clone, check links/seed/coverage/docs, and confirm no secrets
-or generated junk are tracked. The source specifies seven calendar days from the
-assignment email; the receipt date is unknown, so do not invent a deadline. The
+or generated junk are tracked. The recruiter email supplied by the user confirms the deadline as Thursday,
+22 October 2026, 11:59 PM IST; use that explicit date instead of inferring a
+deadline from the source's seven-calendar-day wording. The
 email checklist calls for repository/live URLs, optional credentials, and the
 candidate's name, phone, and problem number; preparing guidance does not authorize
 sending that email.

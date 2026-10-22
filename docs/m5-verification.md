@@ -176,3 +176,31 @@ are cleaned up. No documentation checker was run.
 These results verify the local fix. A successful remote run remains pending the
 user's manual commit/push including both lockfiles; no stage, commit or push was
 performed and the failed historical runs were not rerun.
+
+## 2026-10-22 user-selected VM deployment
+
+The subsequent VM deployment supersedes the earlier pending-public-hosting
+status. [VM evidence](vm-deployment.md) records live UI/API URLs, published AMD64
+Docker Hub images pinned by digest, both committed migrations, a fresh seed and
+all persistent application volumes under `~/kjbn/data/postgres`.
+
+All three services are healthy. Twenty-one public HTTP checks pass; browser
+inspection confirms both doctors and four seeded appointments at reviewer time.
+The packaged backend passes 113 unit/acceptance and four mocked HTTP smoke tests
+in a network-isolated VM container. Re-seeding and complete container recreation
+preserve ordered row fingerprints in all seven domain tables. Recreation takes
+17.10 seconds. The deployment uses application source at `c199607`; these new
+Compose/evidence changes remain pending the user's manual commit. Current remote
+CI, the complete hosted edge-case matrix and final M6 clone/tag remain unverified.
+
+## Direct backend and executable Swagger correction
+
+The user requested public backend port 3000. VM Compose now publishes it and
+allows the exact frontend/backend origins. Direct Swagger execution exposed an
+additional incorrect pagination schema; explicit integer metadata and an HTTP
+OpenAPI regression resolve it. The corrected AMD64 backend image is published
+and deployed by digest. Live "Try it out" returns 200 and two doctors; 11 public
+HTTP checks, six integer schemas, 113 unit/acceptance and five HTTP tests,
+targeted lint and image build pass. See [VM runbook](vm-deployment.md) for the
+current URLs/digest and the old proxied-Swagger limitation. No database reset or
+Git stage/commit/push occurred.

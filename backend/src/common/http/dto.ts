@@ -58,18 +58,28 @@ export function QueryInteger(): PropertyDecorator {
   );
 }
 export class PaginationDto {
-  @ApiPropertyOptional({ default: 0, minimum: 0, maximum: 1000000 })
+  @ApiPropertyOptional({
+    type: 'integer',
+    default: 0,
+    minimum: 0,
+    maximum: 1000000,
+  })
   @QueryInteger()
   @IsInt()
   @Min(0)
   @Max(1000000)
-  readonly offset = 0;
-  @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 100 })
+  readonly offset: number = 0;
+  @ApiPropertyOptional({
+    type: 'integer',
+    default: 20,
+    minimum: 1,
+    maximum: 100,
+  })
   @QueryInteger()
   @IsInt()
   @Min(1)
   @Max(100)
-  readonly limit = 20;
+  readonly limit: number = 20;
 }
 export class IdParams {
   @ApiProperty({ format: 'uuid' }) @IsUUID() declare readonly id: string;

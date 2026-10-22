@@ -1,8 +1,10 @@
 # M5 deployment runbook
 
-Status: local implementation verified on 2026-10-20; full M5 remains incomplete. No public service
-has been created. The Render CLI returns `unauthorized`; account/workspace
-validation and a live seeded verification remain external gates.
+Status: the user-selected VM is deployed and seeded on 2026-10-22. See
+[VM deployment](vm-deployment.md) for its registry images, Compose file, persistent
+directory, live checks and operations. This runbook retains the local setup and
+alternative Render instructions below. No Render service was created; full
+release verification remains separate from the VM deployment.
 
 ## Local stack
 

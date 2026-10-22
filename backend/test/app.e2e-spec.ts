@@ -48,6 +48,31 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('describes pagination as integers so Swagger can execute list requests', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/docs-json')
+      .expect(200);
+    const document: unknown = response.body;
+    for (const path of [
+      '/doctors',
+      '/appointments',
+      '/patients/{id}/history',
+    ]) {
+      for (const name of ['offset', 'limit']) {
+        const schema: unknown = expect.objectContaining({ type: 'integer' });
+        const parameter: unknown = expect.objectContaining({
+          name,
+          in: 'query',
+          schema,
+        });
+        expect(document).toHaveProperty(
+          ['paths', path, 'get', 'parameters'],
+          expect.arrayContaining([parameter]),
+        );
+      }
+    }
+  });
+
   it('liveness stays available without accessing the database', async () => {
     database.isReady.mockResolvedValue(false);
     await request(app.getHttpServer())

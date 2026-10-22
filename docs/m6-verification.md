@@ -4,6 +4,14 @@ Date: 2026-10-20. Status: documentation and local release preparation verified;
 full M5/M6 exit gates remain incomplete. Source requirements are recorded in
 AGENTS.md. User Git choices and project assumptions are distinguished below.
 
+2026-10-22 follow-up: the user-selected VM UI/API and fresh seeded database are
+live; [VM evidence](vm-deployment.md) records registry digests, public checks and
+data preservation. The deployment application source is local commit `c199607`,
+where both lockfiles and verification Compose are tracked. Historical baseline
+and failed-clone findings below describe `eff65d8`; the final committed clone,
+complete hosted boundary matrix, current remote CI and release tag still need
+verification. VM configuration/documentation changes await manual commit.
+
 ## Baseline and actual history
 
 - Local and remote HEAD are `eff65d8` (2026-10-20), the user's M5 implementation
