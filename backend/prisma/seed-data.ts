@@ -7,14 +7,14 @@ export const seedId = (value: number): string =>
 export const doctors = [
   {
     id: seedId(1),
-    name: 'Dr Asha Demo',
+    name: 'Dr Ananya Rao',
     speciality: 'Cardiology',
     slotMinutes: 15,
     dailyCap: 12,
   },
   {
     id: seedId(2),
-    name: 'Dr Ravi Demo',
+    name: 'Dr Vikram Iyer',
     speciality: 'General medicine',
     slotMinutes: 30,
     dailyCap: 8,
@@ -24,28 +24,28 @@ export const doctors = [
 export const patients = [
   {
     id: seedId(11),
-    name: 'Fictional Patient One',
+    name: 'Meera Shah',
     phone: '+12025550101',
     dateOfBirth: new Date('1990-03-12T00:00:00Z'),
     flags: [],
   },
   {
     id: seedId(12),
-    name: 'Fictional Patient Two',
+    name: 'Arjun Menon',
     phone: '+12025550102',
     dateOfBirth: new Date('1985-07-21T00:00:00Z'),
     flags: [PatientFlag.MOBILITY_ASSISTANCE],
   },
   {
     id: seedId(13),
-    name: 'Fictional Patient Three',
+    name: 'Kavya Reddy',
     phone: '+12025550103',
     dateOfBirth: new Date('2000-02-29T00:00:00Z'),
     flags: [],
   },
   {
     id: seedId(14),
-    name: 'Fictional Patient Four',
+    name: 'Suresh Kumar',
     phone: '+12025550104',
     dateOfBirth: new Date('1972-11-02T00:00:00Z'),
     flags: [PatientFlag.INTERPRETER_REQUIRED],
@@ -59,6 +59,7 @@ interface AppointmentFixture {
   readonly start: string;
   readonly minutes: 15 | 30;
   readonly status: AppointmentStatus;
+  readonly reason: string;
   readonly cancelledAt?: string;
   readonly depositAcknowledgedAt?: string;
   readonly rescheduledFrom?: number;
@@ -67,6 +68,7 @@ interface AppointmentFixture {
 const fixtures: readonly AppointmentFixture[] = [
   {
     number: 501,
+    reason: 'Cardiology follow-up',
     doctor: 1,
     patient: 11,
     start: '2026-10-16T09:00:00+05:30',
@@ -75,6 +77,7 @@ const fixtures: readonly AppointmentFixture[] = [
   },
   {
     number: 502,
+    reason: 'Routine health review',
     doctor: 2,
     patient: 12,
     start: '2026-10-15T09:00:00+05:30',
@@ -83,6 +86,7 @@ const fixtures: readonly AppointmentFixture[] = [
   },
   {
     number: 503,
+    reason: 'Palpitations consultation',
     doctor: 1,
     patient: 13,
     start: '2026-10-16T10:00:00+05:30',
@@ -92,6 +96,7 @@ const fixtures: readonly AppointmentFixture[] = [
   },
   {
     number: 504,
+    reason: 'Fever and fatigue',
     doctor: 2,
     patient: 13,
     start: '2026-10-15T10:00:00+05:30',
@@ -100,6 +105,7 @@ const fixtures: readonly AppointmentFixture[] = [
   },
   {
     number: 505,
+    reason: 'Blood pressure review',
     doctor: 1,
     patient: 14,
     start: '2026-10-16T11:00:00+05:30',
@@ -109,6 +115,7 @@ const fixtures: readonly AppointmentFixture[] = [
   },
   {
     number: 506,
+    reason: 'Cardiology follow-up',
     doctor: 1,
     patient: 11,
     start: '2026-10-19T09:00:00+05:30',
@@ -117,6 +124,7 @@ const fixtures: readonly AppointmentFixture[] = [
   },
   {
     number: 507,
+    reason: 'Cardiac risk assessment',
     doctor: 1,
     patient: 13,
     start: '2026-10-19T09:15:00+05:30',
@@ -126,6 +134,7 @@ const fixtures: readonly AppointmentFixture[] = [
   },
   {
     number: 508,
+    reason: 'Routine health review',
     doctor: 2,
     patient: 12,
     start: '2026-10-19T09:30:00+05:30',
@@ -134,6 +143,7 @@ const fixtures: readonly AppointmentFixture[] = [
   },
   {
     number: 509,
+    reason: 'Blood pressure review',
     doctor: 2,
     patient: 14,
     start: '2026-10-19T10:00:00+05:30',
@@ -151,7 +161,7 @@ export const appointments = fixtures.map((fixture) => ({
   endsAt: new Date(Date.parse(fixture.start) + fixture.minutes * 60000),
   slotMinutes: fixture.minutes,
   status: fixture.status,
-  reason: 'Fictional demonstration consultation',
+  reason: fixture.reason,
   cancelledAt: fixture.cancelledAt ? new Date(fixture.cancelledAt) : null,
   depositAcknowledgedAt: fixture.depositAcknowledgedAt
     ? new Date(fixture.depositAcknowledgedAt)

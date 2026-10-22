@@ -68,7 +68,7 @@ async function seed() {
               id: seedId(301),
               doctorId: seedId(1),
               date: new Date('2026-10-20T00:00:00Z'),
-              reason: 'Fictional leave day',
+              reason: 'Annual leave',
             },
             update: {},
           });
@@ -80,7 +80,7 @@ async function seed() {
               id: seedId(302),
               doctorId: seedId(2),
               date: new Date('2026-10-25T00:00:00Z'),
-              reason: 'Fictional extra Sunday clinic',
+              reason: 'Additional Sunday clinic',
             },
             update: {},
           });
@@ -144,7 +144,7 @@ async function seed() {
       { isolationLevel: 'ReadCommitted', maxWait: 5000, timeout: 30000 },
     );
     console.log(
-      `Fictional seed catalog ensured; reviewer reference: ${SEED_REFERENCE_INSTANT}`,
+      `Clinic catalog ensured; reviewer reference: ${SEED_REFERENCE_INSTANT}`,
     );
   } finally {
     await client.$disconnect();

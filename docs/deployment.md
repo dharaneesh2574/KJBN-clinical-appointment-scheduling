@@ -14,7 +14,7 @@ Use Node 24 and Docker Compose v2. From the repository root:
 npm run dev:seed
 ```
 
-This initializes `.env` from the sanitized example only if absent, builds the
+This creates a private `.env` with a random database password only if absent, builds the
 services, applies committed migrations, waits for database/API/UI health, and
 explicitly ensures the fictional seed. Existing `.env` is never overwritten.
 Use `npm run dev` for subsequent startup without seeding. Set `COMPOSE_ENV_FILE`
