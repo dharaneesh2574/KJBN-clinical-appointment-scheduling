@@ -1,5 +1,5 @@
-import { access, copyFile } from "node:fs/promises";
-import { constants } from "node:fs";
+import { access, writeFile } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 import { root, run, reportFailure } from "./process.mjs";
 
@@ -13,13 +13,13 @@ try {
     // Only initialize the default local configuration. Never overwrite an env file.
     if (process.env.COMPOSE_ENV_FILE)
       throw new Error("COMPOSE_ENV_FILE does not exist");
-    await copyFile(
-      resolve(root, ".env.example"),
+    await writeFile(
       envFile,
-      constants.COPYFILE_EXCL,
+      `POSTGRES_PASSWORD=${randomBytes(32).toString("hex")}\n`,
+      { flag: "wx", mode: 0o600 },
     );
     process.stdout.write(
-      "Created .env with fictional local development settings.\n",
+      "Created private .env with a random local database password.\n",
     );
   }
   const compose = [
