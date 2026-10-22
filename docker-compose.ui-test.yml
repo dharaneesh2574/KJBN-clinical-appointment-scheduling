@@ -14,20 +14,10 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
-  migrate:
-    build:
-      context: ./backend
-      target: tooling
-    environment:
-      DATABASE_URL: postgresql://kjbn_test:fictional_ui_test_only@db:5432/kjbn_test_ui
-    depends_on:
-      db:
-        condition: service_healthy
-    command: ["npm", "run", "prisma:deploy"]
   api:
+    image: dharaneesh2574/kjbn-backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
-      target: runtime
     environment:
       DATABASE_URL: postgresql://kjbn_test:fictional_ui_test_only@db:5432/kjbn_test_ui
       NODE_ENV: test
@@ -35,8 +25,8 @@ services:
       CORS_ORIGINS: http://127.0.0.1:4173
       REVIEW_MODE: "true"
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     ports:
       - "127.0.0.1:3011:3000"
     healthcheck:

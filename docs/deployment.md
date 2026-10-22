@@ -20,6 +20,19 @@ for a different existing environment file. Normal data lives in Compose's named
 volume; `docker compose down` preserves it. Do not use `down --volumes` on the
 clinic project for routine upgrades.
 
+Compose contains only `db`, `backend` and `frontend`. There is one backend image
+for serving the API, running database scripts and executing isolated tests.
+Migrations run inside the backend at startup. To migrate and seed explicitly:
+
+```sh
+docker compose exec backend npm run db:prepare
+# Or start the configured DB and run the same backend image as a temporary job:
+./scripts/migrate-and-seed.sh
+```
+
+Both commands use the backend database configuration. Native development uses
+`npm run db:prepare` in `backend/` with its configured `DATABASE_URL`.
+
 Default UI: http://localhost:8080; API: http://localhost:3000; docs:
 http://localhost:3000/docs. Native Vite uses its configured `/api` development
 proxy. Docker nginx strips `/api/` before forwarding to the API root.
@@ -52,12 +65,15 @@ No test targets public hosting or the persistent local clinic database.
 `.github/workflows/verify.yml` runs the coverage gate on main/codex branch pushes,
 pull requests to main, and manual workflow dispatch. It uses Node 24, installs
 Chromium with Linux dependencies, and grants only repository read permission.
-CI also runs `npm run docs:check` and fetches complete milestone history.
+CI runs tests and coverage; documentation validation is an optional manual command.
 CI has no deployment credentials or production database access. A local pass
 does not prove a GitHub Actions run occurred; verify its first remote run after
-the user manually commits and pushes the complete package. `eff65d8` is now
-pushed, but public CI access is unverified and its package omits the app lockfiles
-and verification Compose file. See [M6 evidence](m6-verification.md).
+the user manually commits and pushes the complete package. Both remote runs
+through `0bd2f22` failed during Node dependency-cache setup because the ignored
+frontend lockfile was absent; tests never started. The working tree now makes
+both existing app lockfiles trackable. Include them in the next manual commit;
+disabling npm caching alone would still leave `npm ci` and Docker builds broken.
+See [M5 evidence](m5-verification.md) and [M6 evidence](m6-verification.md).
 
 ## Health and startup behavior
 
@@ -82,9 +98,10 @@ tmpfs test DB intentionally discards its schema; a real hosted DB is persistent.
 
 `render.yaml` defines a free Node backend, free static frontend and free
 PostgreSQL 17 database in Singapore. This is the prepared default while the user
-chooses a provider. Native Node hosting uses the same build and migrations as
-the Docker tooling image; retaining dev dependencies supplies Prisma CLI/ts-node
-for migrations and the explicit fictional seed. Docker runtime remains lean.
+chooses a provider. Native Node hosting and Docker use the same backend build,
+migrations and seed scripts. The backend image retains dependencies for Prisma
+CLI, the TypeScript seed runner and verification. It runs migrations before HTTP
+startup; seeding requires an explicit command or `SEED_DEMO_DATA=true`.
 
 The database accepts private-network connections only (`ipAllowList: []`), and
 the backend receives its internal connection string through a database reference.

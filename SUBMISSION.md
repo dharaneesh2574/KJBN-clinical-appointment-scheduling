@@ -68,7 +68,7 @@ slots and requires confirmation; it never retries a write automatically.
 | M2 | Verified 2026-10-20 | `ecdbbe0` |
 | M3 | Verified 2026-10-20 | `f07683a` |
 | M4 | Verified 2026-10-20 | `9197ec5`; follow-ups in `eff65d8` |
-| M5 | Local gates verified 2026-10-20; public gate incomplete | `eff65d8` implementation |
+| M5 | Local gates 2026-10-20; packaging reverified 2026-10-22; public gate incomplete | `eff65d8`; packaging pending manual commit |
 | M6 | Local docs verified 2026-10-20; release gate incomplete | Pending manual commit |
 
 ## F. If I had two more days

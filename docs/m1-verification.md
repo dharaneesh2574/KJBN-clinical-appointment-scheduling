@@ -35,7 +35,7 @@ left running at localhost:8080 (UI) and localhost:3000 (backend).
 
 The integration runner uses Jest's documented `--experimental-vm-modules` option
 because the Prisma runtime performs dynamic imports. OpenSSL and explicit Prisma
-engine preparation are present in the migration/tooling image. No dependency
+engine preparation were included in the image used for migration verification. No dependency
 errors were hidden or tests skipped to make verification pass.
 
 ## Scope limits

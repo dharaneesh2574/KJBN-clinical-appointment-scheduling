@@ -96,13 +96,16 @@ Use URL-safe characters for root `POSTGRES_USER`, `POSTGRES_PASSWORD`, and
 credentials on an existing PostgreSQL volume does not change the stored database
 role password; keep settings consistent or manage that password explicitly.
 
-Images are tagged `dharaneesh2574/kjbn-frontend:latest`,
-`dharaneesh2574/kjbn-backend:latest`, and
-`dharaneesh2574/kjbn-backend:latest-tooling`. `IMAGE_TAG` changes their tags. The
-tooling image holds the Prisma CLI/seed/tests; the non-root backend runtime holds
-only production dependencies and compiled code. Frontend nginx also runs without
-root. The migration job waits for healthy PostgreSQL; backend startup waits for
-successful migration; frontend startup waits for database-backed API readiness.
+The normal stack has three services and images: the frontend
+(`dharaneesh2574/kjbn-frontend:latest`), backend
+(`dharaneesh2574/kjbn-backend:latest`) and PostgreSQL (`postgres:17-alpine`).
+`IMAGE_TAG` changes the two application tags. The backend image contains the API,
+Prisma migration/seed scripts and their dependencies; the verification suites use
+this same image. API and frontend processes run without root. Backend startup
+waits for healthy PostgreSQL and applies committed migrations before serving;
+frontend startup waits for database-backed API readiness. Seeding is explicit:
+`dev:seed` runs `prisma:seed` inside the backend, while `SEED_DEMO_DATA=true`
+enables the additive seed on backend startup.
 
 `docker compose down` stops the stack and keeps the database volume. Rebuild after
 code changes with `docker compose up --build -d`. Do not delete volumes to perform
@@ -159,8 +162,11 @@ redeploy/re-seed instructions and failure recovery. The CLI currently reports
 committed Prisma migrations, explicitly ensures the fictional seed when
 `SEED_DEMO_DATA=true`, and stops on any failed step before serving. It never uses
 `db push` or resets the database. Normal Docker startup migrates without seeding;
-`./scripts/migrate-and-seed.sh` is the separate explicit seed path. Re-seeding
-preserves catalog edits/history. PostgreSQL must support `btree_gist`.
+`./scripts/migrate-and-seed.sh` runs the backend's `npm run db:prepare` against
+its configured database using the same backend image. From an already running
+stack, `docker compose exec backend npm run db:prepare` applies migrations and
+ensures the seed. Native development can run `npm run db:prepare` from `backend/`.
+Re-seeding preserves catalog edits/history. PostgreSQL must support `btree_gist`.
 
 `/health/live` checks the process; `/health/ready` performs a bounded read of the
 migrated schema and returns safe 503 `DATABASE_UNAVAILABLE` on failure. Compose and
@@ -173,7 +179,7 @@ measured application cold-start results. [Official limits](https://render.com/do
 
 The app images are built/tagged locally, not published to Docker Hub. Publishing
 can be performed separately after `docker login` with
-`docker compose push frontend backend migrate`; base PostgreSQL/nginx images remain upstream images.
+`docker compose push frontend backend`; base PostgreSQL/nginx images remain upstream images.
 Do not use the local example credentials for a hosted deployment.
 
 ## 6. Running tests and coverage
@@ -185,7 +191,7 @@ npm test
 npm run coverage
 ```
 
-`npm run docs:check` separately verifies required documentation structure, word
+Optional manual command `npm run docs:check` verifies required documentation structure, word
 limits, local links, milestone hashes, rubric and prompt order. The
 [reviewer checklist](docs/reviewer-checklist.md) lists pending hosted checks.
 
@@ -193,7 +199,7 @@ These commands build/lint and run every required backend, real-PostgreSQL,
 operational readiness and browser suite against explicitly disposable projects.
 `coverage` retains `backend/coverage/all/` and enforces the combined thresholds.
 No native PostgreSQL or public hosted service is needed. The CI workflow executes
-this same command. See [deployment runbook](docs/deployment.md).
+this same command, without documentation checks. See [deployment runbook](docs/deployment.md).
 
 Individual backend commands (from `backend/`):
 
@@ -219,22 +225,22 @@ uses a public hosted service.
 One full backend gate from the root without native PostgreSQL:
 
 ```sh
-docker compose --env-file .env.example --profile test run --build --rm integration npm run test:all
+docker compose -f docker-compose.verify.yml run --build --rm tests npm run test:all
 ```
 
 One combined coverage run (prints the report; container-local generated files are
 removed with the disposable runner):
 
 ```sh
-docker compose --env-file .env.example --profile test run --build --rm integration npm run test:cov:all
+docker compose -f docker-compose.verify.yml run --build --rm tests npm run test:cov:all
 ```
 
 To retain generated reports locally, create `backend/coverage/` first, then add
-`-v "$PWD/backend/coverage:/app/coverage"` before `integration` in that command.
-The Docker suite uses `kjbn_test_m1` on tmpfs, separate from the application's named
+`-v "$PWD/backend/coverage:/app/coverage"` before `tests` in that command.
+The Docker suite uses `kjbn_test_verify` on tmpfs, separate from the application's named
 volume. Migrations replay on a fresh test database; fixture cleanup and repeat-seed
 checks touch only the isolated database. Stop it afterward with
-`docker compose --env-file .env.example stop test-db`.
+`docker compose -f docker-compose.verify.yml down --volumes`.
 
 Combined coverage is **97.47% overall backend lines** and **97.91% business-code
 lines**, including API and real-DB execution. Scope is `backend/src/**/*.ts`;
@@ -480,9 +486,9 @@ history untouched. `/docs` provides executable request schemas for all operation
 
 M4 is verified locally in Chrome, including phone widths; other browser/device
 coverage and a full accessibility audit remain unverified. Public hosting, first
-remote CI execution, hosted edge-case checks, clean-clone final verification and
+successful remote CI execution, hosted edge-case checks, clean-clone final verification and
 submission tagging remain M5/M6. CI configuration and local database readiness
-are implemented; hosting authentication and lockfile reconciliation are pending. Authentication
+are implemented; hosting authentication and a manual commit of the prepared lockfiles are pending. Authentication
 is optional and not implemented. No stretch features have started.
 
 The clinic-wide write lock favors understandable correctness over throughput.
@@ -496,10 +502,11 @@ without hosted evidence. [M6 evidence](docs/m6-verification.md) records the fail
 committed clean clone, candidate packaging checks and targeted repository audit.
 The final `v1.0` tag must identify the verified user-created final commit.
 
-Both application npm lockfiles are intentionally ignored while local copies
-exist. Current `npm ci`, Docker, CI and hosting builds require them. A request to
-restore their trackability is pending. A fresh clone of `eff65d8` fails npm ci
-and lacks `docker-compose.verify.yml`; no published clean-clone pass is claimed.
+Both application npm lockfiles are now trackable and must be included in the next
+manual commit. Current `npm ci`, Docker, CI and hosting builds require them. The
+two Actions runs through `0bd2f22` failed before tests at dependency-cache setup
+because the frontend lockfile was missing. A fresh clone of historical `eff65d8`
+fails npm ci and lacks `docker-compose.verify.yml`; no published clean-clone pass is claimed.
 Candidate checks that temporarily include lockfiles are explicitly distinguished
 from committed-clone evidence. The Git index is unchanged.
 

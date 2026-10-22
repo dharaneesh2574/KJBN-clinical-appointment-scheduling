@@ -15,9 +15,9 @@ services:
       timeout: 3s
       retries: 30
   tests:
+    image: dharaneesh2574/kjbn-backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
-      target: tooling
     environment:
       TEST_DATABASE_URL: postgresql://kjbn_test:fictional_verification_only@db:5432/kjbn_test_verify
       NODE_ENV: test
@@ -26,9 +26,9 @@ services:
         condition: service_healthy
     command: ["npm", "run", "test:all"]
   api:
+    image: dharaneesh2574/kjbn-backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
-      target: tooling
     environment:
       DATABASE_URL: postgresql://kjbn_test:fictional_verification_only@db:5432/kjbn_test_verify
       NODE_ENV: production
@@ -36,7 +36,6 @@ services:
       CORS_ORIGINS: http://127.0.0.1:4173
       REVIEW_MODE: "false"
       SEED_DEMO_DATA: "true"
-    command: ["node", "scripts/start-hosted.mjs"]
     depends_on:
       db:
         condition: service_healthy

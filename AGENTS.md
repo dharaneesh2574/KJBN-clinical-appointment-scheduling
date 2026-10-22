@@ -80,6 +80,11 @@ block subsequent work the user has authorized.
 - `backend/prisma/schema.prisma`: M1 entities, relations, and committed initial SQL migration.
   Generated client goes to `backend/src/generated/prisma/` and is ignored.
 - `backend/.env.example`: sanitized database, port, CORS, mode, and reviewer-mode settings.
+- Container packaging (verified 2026-10-22): one backend image contains the API,
+  Prisma migration/seed scripts and test dependencies. Main Compose has only
+  `db`, `backend`, `frontend`; isolated suites reuse the backend image. Startup
+  applies committed migrations; explicit `npm run db:prepare` migrates and seeds
+  the configured database. Local seed commands execute the backend scripts.
 - Root `README.md`: required ordered sections, numbered M1 assumptions, and verified setup notes.
 - M1 has pure domain entities, a repeatable fictional seed, 25 unit tests, and 10
   real-PostgreSQL integration tests. M2 now adds protected application use cases,
@@ -88,6 +93,12 @@ block subsequent work the user has authorized.
   clocks/OpenAPI: 113 unit/acceptance + 1 smoke + 100 real-DB tests (70 API cases).
   M4 adds 27 passing real-API Playwright cases, responsive flows and doctor/hours
   management. See `docs/m3-verification.md` and `docs/m4-verification.md`; hosting remains pending.
+
+CI runs tests and coverage only, per the user's 2026-10-22 decision. Documentation
+validation is an optional manual command. Both existing app lockfiles are now
+trackable and must be included in the next manual commit: remote runs through
+`0bd2f22` failed at Node dependency-cache setup before any tests because the
+frontend lockfile was missing from Git.
 
 Use the committed package manifests and lockfiles as the version authority. Keep
 the existing monorepo and npm setup. Do not re-scaffold or generate business logic.
@@ -312,7 +323,7 @@ Existing commands (run within the named app):
 
 | Location | Commands |
 | --- | --- |
-| Root | `npm run dev`; `npm run dev:seed`; `npm test`; `npm run coverage`; `npm run docs:check` (isolated Docker DB/API + frontend browser gate) |
+| Root | `npm run dev`; `npm run dev:seed`; `npm test`; `npm run coverage` (isolated Docker DB/API + frontend browser gate); optional manual `npm run docs:check` |
 | `frontend/` | `npm ci`; `npm run dev`; `npm run lint`; `npm run build`; `npx playwright install chromium`; `npm run test:e2e` (Docker + isolated API/DB) |
 | `backend/` | `npm ci`; `npm run start:dev`; `npm run build`; `npm test -- --runInBand`; `npm run test:e2e -- --runInBand`; `npm run test:cov -- --runInBand` |
 | `backend/` Prisma | `npm run prisma:validate`; `npm run prisma:generate`; `npm run prisma:migrate -- --name <change>`; `npm run prisma:deploy` |
@@ -342,7 +353,7 @@ evidence in SUBMISSION.md. Never invent history or retroactively relabel old com
 | M2 — Business rules | Testable use cases/policies; all core rules pass; atomic rescheduling and real PostgreSQL concurrency evidence; boundary tests. HTTP not required yet. | Verified 2026-10-20: 99 unit/acceptance + 1 HTTP smoke + 30 real-DB tests; 96.76% business-code line coverage. `ecdbbe0` (actual manual commit); see `docs/m2-verification.md`. |
 | M3 — API | Core endpoints; DTO validation; consistent errors; structured request logging; request clock; OpenAPI; passing API tests. | Verified 2026-10-20: 214 tests including 70 real-DB API cases; combined lines 97.48% overall / 97.91% business. `f07683a` (actual manual commit); see `docs/m3-verification.md`. |
 | M4 — UI | All required flows call the local API; IST display; loading/error/empty states; flags explained; usable at laptop and phone widths. | Verified 2026-10-20: initial 18 real-API Playwright cases, then 27 with loaded-hours, calendar interaction and dashboard/modal coverage; 375/320px phone and 1440px desktop; strict build/lint and preceding 214 backend tests pass. `9197ec5` (actual manual commit); weekly-payload, calendar interaction and dashboard/modal follow-ups verified and included in `eff65d8`; see `docs/m4-verification.md`. |
-| M5 — Deployment | Service Dockerfiles/build specs; one-command local backend + DB + UI; provider config; migrate-and-seed script; live seeded UI/API; CORS; health endpoint; CI tests. | Local gates verified 2026-10-20: one-command stack, health/readiness with DB outage/recovery, hosted migration/seed launcher, 220 backend + 27 browser cases, 97.47% overall / 97.91% business lines; CI workflow and schema-validated Render Blueprint prepared. Implementation recorded in `eff65d8`; public deployment/remote CI and lockfile reconciliation pending; milestone incomplete. Verification Compose remains untracked and must be included in the final reviewed commit. See `docs/m5-verification.md`. |
+| M5 — Deployment | Service Dockerfiles/build specs; one-command local backend + DB + UI; provider config; migrate-and-seed script; live seeded UI/API; CORS; health endpoint; CI tests. | Local gates verified 2026-10-20: one-command stack, health/readiness with DB outage/recovery, hosted migration/seed launcher, 220 backend + 27 browser cases, 97.47% overall / 97.91% business lines; CI workflow and schema-validated Render Blueprint prepared. Implementation recorded in `eff65d8`; public deployment/remote CI and lockfile reconciliation pending; milestone incomplete. Verification Compose remains untracked and must be included in the final reviewed commit. Single-backend-image packaging reverified 2026-10-22 with all 220 backend and 27 browser cases passing; pending manual commit. See `docs/m5-verification.md`. |
 | M6 — Documentation | Exact README/SUBMISSION formats; prompt log and disclosure; committed coverage summary; clean-clone/hosted edge-case verification; final `v1.0` tag. | Local documentation verified 2026-10-20: exact formats/checker, prompt disclosure, hashes, reviewer matrix, audit and links. Fresh Node 24 candidate installs, 220 backend + 27 browser cases, coverage and isolated one-command startup pass using temporary lockfile copies. `eff65d8` clean clone fails missing lockfiles/verification Compose; hosted checks, public/CI evidence, final committed clone and tag pending. See `docs/m6-verification.md`. |
 
 The user creates milestone commits manually, naming `[M0]` through `[M6]`.

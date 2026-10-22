@@ -8,5 +8,4 @@ if [ ! -f "$compose_env_file" ]; then
   exit 1
 fi
 
-docker compose --env-file "$compose_env_file" run --rm migrate
-docker compose --env-file "$compose_env_file" --profile tools run --rm --no-deps seed
+docker compose --env-file "$compose_env_file" run --build --rm backend npm run db:prepare

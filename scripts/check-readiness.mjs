@@ -37,6 +37,7 @@ export async function checkReadiness(compose) {
   await run("docker", [
     ...compose,
     "up",
+    "--no-recreate",
     "--wait",
     "--wait-timeout",
     "120",
@@ -62,6 +63,7 @@ export async function checkReadiness(compose) {
   await run("docker", [
     ...compose,
     "up",
+    "--no-recreate",
     "--wait",
     "--wait-timeout",
     "120",

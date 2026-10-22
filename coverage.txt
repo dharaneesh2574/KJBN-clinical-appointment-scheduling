@@ -36,3 +36,10 @@ M6 Node 24.19.0 run reproduces every count above after fresh npm ci installs.
 It temporarily includes existing ignored lockfiles; committed eff65d8 clone fails
 without them and the verification Compose file. No hosted result is implied.
 M3 baseline: docs/m3-verification.md.
+
+2026-10-22 CI fix re-verification: root npm run coverage exits 0 with the same
+220 backend cases and every combined/business count above; 27 real-API browser
+cases also pass. Both existing lockfiles are now trackable, pending the user's
+manual commit. Documentation checks were excluded. Remote green run is pending
+that commit/push; inspected historical runs failed before tests on missing cache
+lockfile paths. Evidence: docs/m5-verification.md.

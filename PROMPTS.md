@@ -2,7 +2,8 @@
 
 Requests below are ordered from the available conversation evidence. Items 1–3
 were recovered from the scaffold conversation; their dates use its environment
-context. No unavailable prompts or tool results are invented.
+context. No unavailable prompts or tool results are invented. Historical entries
+record the implementation at that time; current setup commands are in README.md.
 
 ## 1. Repository scaffold hygiene
 
@@ -336,3 +337,93 @@ which prompts patient and doctor and once the doctor is selected then the availa
   344 reachable blobs finds no checked credential/generated-path patterns.
   Hosted checks, public/CI access, final committed clone and v1.0 remain pending;
   ignore preference/index/history are preserved and no stage/commit/push/tag occurs.
+
+## 20. Manually verify required API workflows
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; Docker; direct HTTP requests.
+- Prompt (verbatim):
+
+  ```text
+  with the existing api can you check the necessary workflows from requirements if its working
+  do a manual testing with using the api
+  ```
+
+- Use note: Exercise the existing API through direct HTTP requests against a fresh,
+  isolated PostgreSQL/API stack built from current source. Cover required workflows,
+  R1–R7, schedule-edit behavior, concurrency, reviewer clocks and safe failures.
+  Preserve the normal clinic stack and leave evidence unstaged/uncommitted.
+- Verified outcome: 236 direct HTTP requests and 408 response/state checks pass
+  against a fresh source-built API and real PostgreSQL. All required API flows,
+  R1–R7 boundaries, seven concurrent request pairs, late-reschedule deposit
+  rollback, reviewer isolation and database-outage recovery were exercised.
+  Matched all 236 requests to exactly one sanitized completion log each. Historical
+  weekly-edit blocking matches the documented conservative policy; no application
+  defect found in exercised paths. Corrected two initial driver mistakes and
+  recreated only the disposable database before the complete run. Evidence:
+  `docs/manual-api-2026-10-22.md` plus JSON transcript/logs. The original clinic
+  remains healthy; disposable stack/image removed. No runtime code changed,
+  automated suites/coverage not rerun, and no stage/commit/push occurs.
+
+## 21. Explain the two isolated test Compose files
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; read-only source inspection.
+- Prompt (verbatim): `why do we have`
+- Referenced files: `docker-compose.ui-test.yml` and `docker-compose.verify.yml`.
+- Use note: Explain their purpose and distinguish test-environment configuration
+  from normal runtime services and from assignment requirements. Preserve the
+  existing on-disk prompt ordering and application changes.
+- Verified outcome: verify Compose supplies a disposable DB, backend test runner
+  and production-mode API for coverage/startup/readiness checks; UI-test Compose
+  supplies an isolated DB and reviewer-enabled API on port 3011 for Playwright.
+  Root test/coverage scripts invoke both; frontend test:e2e invokes the UI stack.
+  Both reuse the existing backend/PostgreSQL images and are cleaned up by their
+  callers. Two separate test Compose files are an implementation choice, not an
+  explicitly mandated deliverable. No runtime configuration or code changed.
+
+## 22. Explain the assignment's CI wording and GitHub Actions choice
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; bundled Python/pypdf; source inspection.
+- Prompt (verbatim): `why do we need to use github actions from the requirements`
+- Use note: Check the original Common Instructions PDF and distinguish CI
+  expectations from the choice of GitHub Actions as a provider.
+- Verified outcome: D5 on PDF page 1 calls a CI workflow running tests on push
+  strongly recommended; the M5 checklist on page 3 explicitly includes CI running
+  tests. GitHub Actions itself is not prescribed. The existing workflow implements
+  that checklist with documentation checks and the root coverage/test gate on
+  main/codex pushes and pull requests to main. Explained the wording difference
+  and why the project follows M5's explicit checklist. No CI configuration changed.
+
+## 23. Keep CI focused on tests/coverage and diagnose failed Actions
+
+- Date: 2026-10-22
+- Tool: OpenAI Codex desktop; graphify; diagnosing-bugs; GitHub connector;
+  read-only GitHub API using the existing local Git login; npm; Docker.
+- Prompt (verbatim):
+  ```text
+  no need documentation checks
+  only tests and coverage needs to be tested
+  and why we have erroe actions
+  [https://github.com/dharaneesh2574/KJBN-clinical-appointment-scheduling/actions](https://github.com/dharaneesh2574/KJBN-clinical-appointment-scheduling/actions)
+  ```
+- Use note: Remove the documentation CI step and its full-history checkout
+  requirement; inspect actual remote job logs rather than infer a cause. Keep
+  the manual documentation command available, without running it for this task.
+- Diagnosis: Both runs (39655207536 and 39444816467) failed at `setup-node` with
+  `Some specified paths were not resolved, unable to cache dependencies.` Both
+  app lockfiles were ignored and absent from the checkout. Tests never started;
+  the latest run's documentation step was skipped. Reproduced the subsequent
+  `npm ci` missing-lockfile error from a clean temporary manifest-only directory.
+- Implementation: Make the two existing lockfiles trackable without changing
+  dependency versions. They match their manifests; a fresh temporary frontend
+  `npm ci` succeeds. CI keeps the existing root tests/coverage gate, with no
+  documentation validation. Changes remain unstaged/uncommitted; the fixed
+  package needs the user's manual commit/push before a new remote run can prove it.
+- Verification: `npm run coverage` exits 0 with 220 backend tests / 10 suites and
+  27 real-API browser cases passing. Overall backend lines remain 1195/1226
+  (97.47%); the 28 business-code files remain 422/431 (97.91%). Existing build,
+  lint, startup/restart and database outage/recovery checks also pass. Disposable
+  test stacks were removed. No documentation checker was run and no files were
+  staged, committed or pushed.

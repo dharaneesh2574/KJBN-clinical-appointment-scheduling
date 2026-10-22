@@ -15,36 +15,22 @@ services:
       timeout: 3s
       retries: 20
 
-  migrate:
-    image: dharaneesh2574/kjbn-backend:${IMAGE_TAG:-latest}-tooling
+  backend:
+    image: dharaneesh2574/kjbn-backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
-      target: tooling
-    environment: &backend-environment
+    environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-kjbn}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-kjbn}?schema=public
       NODE_ENV: production
       PORT: 3000
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:5173}
       REVIEW_MODE: ${REVIEW_MODE:-false}
-    depends_on:
-      db:
-        condition: service_healthy
-    command: ["npm", "run", "prisma:deploy"]
-    restart: "no"
-
-  backend:
-    image: dharaneesh2574/kjbn-backend:${IMAGE_TAG:-latest}
-    build:
-      context: ./backend
-      target: runtime
-    environment: *backend-environment
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 5s
@@ -69,49 +55,6 @@ services:
       timeout: 3s
       retries: 12
     restart: unless-stopped
-
-  seed:
-    profiles: ["tools"]
-    image: dharaneesh2574/kjbn-backend:${IMAGE_TAG:-latest}-tooling
-    build:
-      context: ./backend
-      target: tooling
-    environment: *backend-environment
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    command: ["npm", "run", "prisma:seed"]
-    restart: "no"
-
-  test-db:
-    profiles: ["test"]
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: kjbn_test
-      POSTGRES_PASSWORD: fictional_test_only
-      POSTGRES_DB: kjbn_test_m1
-    tmpfs:
-      - /var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kjbn_test -d kjbn_test_m1"]
-      interval: 2s
-      timeout: 3s
-      retries: 20
-
-  integration:
-    profiles: ["test"]
-    image: dharaneesh2574/kjbn-backend:${IMAGE_TAG:-latest}-tooling
-    build:
-      context: ./backend
-      target: tooling
-    environment:
-      TEST_DATABASE_URL: postgresql://kjbn_test:fictional_test_only@test-db:5432/kjbn_test_m1
-      NODE_ENV: test
-    depends_on:
-      test-db:
-        condition: service_healthy
-    command: ["npm", "run", "test:integration"]
-    restart: "no"
 
 volumes:
   postgres-data:

@@ -7,10 +7,6 @@ node_modules/
 .yarn/install-state.gz
 .pnp.*
 
-# App package lockfiles (user preference)
-/backend/package-lock.json
-/frontend/package-lock.json
-
 # Build output, coverage, and tool caches
 dist/
 dist-ssr/

@@ -28,9 +28,11 @@ rubric rows. It also checks actual commit references, sequential prompt numbers
 and required local documentation links. SUBMISSION uses a maximum 900-word
 two-page-equivalent budget; no PDF pagination is claimed.
 
-CI includes the same documentation check and fetches full history so the real
-milestone hashes can resolve. The checker does not declare hosted services live,
-prove semantic correctness or silently modify documentation.
+CI originally included the same documentation check and fetched full history.
+On 2026-10-22, the user requested tests and coverage only; that CI step and its
+full-history checkout requirement were removed. The checker remains available
+as an optional manual command. It does not declare hosted services live, prove
+semantic correctness or silently modify documentation.
 
 The README records real commands, environment/configuration, rule/test mapping,
 reviewer clock, known gaps, AI disclosure and source references. SUBMISSION

@@ -40,12 +40,12 @@ try {
   if (process.argv.includes("--seed"))
     await run("docker", [
       ...compose,
-      "--profile",
-      "tools",
+      "exec",
+      "-T",
+      "backend",
+      "npm",
       "run",
-      "--rm",
-      "--no-deps",
-      "seed",
+      "prisma:seed",
     ]);
   process.stdout.write(
     "Clinic is ready. Default UI: http://localhost:8080; API docs: http://localhost:3000/docs\n",

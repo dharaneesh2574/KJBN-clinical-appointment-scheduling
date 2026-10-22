@@ -18,7 +18,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
@@ -26,10 +25,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend
         run: npm ci --prefix frontend
-      - name: Verify submission documentation
-        run: npm run docs:check
       - name: Install browser
         working-directory: frontend
         run: npx playwright install --with-deps chromium
-      - name: Verify all suites and coverage against disposable PostgreSQL
+      - name: Run tests and coverage against disposable PostgreSQL
         run: npm run coverage
